@@ -1,0 +1,279 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  Candidate
+  Recruiter
+}
+
+enum EducationLevel { 
+  TENTH 
+  TWELFTH 
+  DIPLOMA 
+  GRADUATION 
+  POST_GRADUATION 
+  DOCTORATE 
+}
+enum ScoreType { 
+  PERCENTAGE 
+  CGPA 
+}
+enum CompanySize { 
+  SIZE_1_10 
+  SIZE_11_50 
+  SIZE_51_200 
+  SIZE_201_1000 
+  SIZE_1000_PLUS 
+}
+enum JobType { 
+  FULL_TIME 
+  PART_TIME 
+  CONTRACT 
+  INTERNSHIP 
+}
+enum WorkMode { 
+  ONSITE 
+  HYBRID 
+  REMOTE 
+}
+enum JobStatus { 
+  OPEN 
+  CLOSED 
+}
+enum ApplicationStatus { 
+  APPLIED 
+  SHORTLISTED 
+  INTERVIEW 
+  REJECTED 
+  HIRED 
+  WITHDRAWN 
+}
+enum CompanyRole {
+  ADMIN
+  MEMBER
+}
+enum Currency {
+  INR
+  USD
+  EUR
+  GBP
+}
+
+model User {
+  id              String  @id @default(uuid())
+  firstName       String
+  lastName        String
+  email           String  @unique
+  phone           String? @unique
+  password        String
+  gender          String?
+  role            Role
+  avatarUrl       String?
+  isEmailVerified Boolean  @default(false)
+  isPhoneVerified Boolean  @default(false)
+  lastLoginAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  applicant       ApplicantDetails?
+  recruiter       RecruiterDetails?
+  refreshTokens   RefreshToken[]
+}
+
+model ApplicantDetails {
+  id              Int     @id @default(autoincrement())
+  userId          String  @unique
+  user            User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  summary             String?
+  location            String?
+  linkedinUrl         String?
+  githubUrl           String?
+  industry            String?
+  totalExpInYears     Int
+  remainingExpMonths  Int
+  currentSalary       Int?
+  expectedSalary      Int?
+  currency            Currency   @default(INR)
+  noticePeriodDays    Int?
+  openToWork          Boolean    @default(true)
+  willingToRelocate   Boolean    @default(false)
+  preferredLocations  String[]
+  skills              Skill[]
+  resumes             Resume[]
+  educations          Education[]
+  workExperiences     WorkExperience[]
+  applications        Application[]
+  savedJobs           SavedJob[]
+}
+
+model RecruiterDetails {
+  id           Int         @id @default(autoincrement())
+  userId       String      @unique
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  companyId    Int
+  company      Company     @relation(fields: [companyId], references: [id])
+  designation  String
+  department   String?
+  companyRole  CompanyRole @default(MEMBER)
+  workEmail    String?
+  linkedinUrl  String?
+  bio          String?
+  isVerified   Boolean     @default(false)
+  joinedAt     DateTime    @default(now())
+  jobsPosted   Job[]
+
+  @@index([companyId])
+}
+
+model Resume {
+  id          Int              @id @default(autoincrement())
+  fileName    String
+  fileUrl     String
+  uploadedAt  DateTime         @default(now())
+  applicantId Int
+  applicant   ApplicantDetails @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  applications Application[]
+
+  @@index([applicantId])
+}
+
+model Education {
+  id             Int              @id @default(autoincrement())
+  level          EducationLevel
+  institution    String
+  boardOrUniversity String?
+  course         String?
+  specialization String?
+  startYear      Int?
+  endYear        Int?
+  score          Decimal?         @db.Decimal(5, 2)
+  scoreType      ScoreType?
+  applicantId    Int
+  applicant      ApplicantDetails @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+
+  @@index([applicantId])
+}
+
+model WorkExperience {
+  id          Int              @id @default(autoincrement())
+  companyName String
+  title       String
+  location    String?
+  startDate   DateTime
+  endDate     DateTime?
+  isCurrent   Boolean          @default(false)
+  description String?
+  applicantId Int
+  applicant   ApplicantDetails @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+
+  @@index([applicantId])
+}
+
+model Skill {
+  id         Int                @id @default(autoincrement())
+  name       String             @unique
+  applicants ApplicantDetails[]  
+  jobs       Job[]               
+}
+
+model Company {
+  id           Int                @id @default(autoincrement())
+  name         String
+  slug         String             @unique
+  logoUrl      String?
+  website      String?
+  description  String?
+  industry     String?
+  size         CompanySize?
+  foundedYear  Int?
+  headquarters String?
+  isVerified   Boolean            @default(false)
+  createdAt    DateTime           @default(now())
+  recruiters   RecruiterDetails[]
+  jobs         Job[]
+}
+
+model Job {
+  id            Int              @id @default(autoincrement())
+  title         String
+  description   String
+  location      String
+  jobType       JobType
+  workMode      WorkMode
+  experienceMin Int?             // years
+  experienceMax Int?
+  salaryMin     Int?
+  salaryMax     Int?
+  currency      Currency         @default(INR) 
+  openings      Int              @default(1)
+  status        JobStatus        @default(OPEN)
+  expiresAt     DateTime?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  companyId     Int
+  company       Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  postedById    Int
+  postedBy      RecruiterDetails @relation(fields: [postedById], references: [id])
+  skills        Skill[]
+  applications  Application[]
+  savedBy       SavedJob[]
+
+  @@index([companyId])
+  @@index([postedById])
+  @@index([status, createdAt])
+}
+
+model Application {
+  id          Int               @id @default(autoincrement())
+  status      ApplicationStatus @default(APPLIED)
+  coverLetter String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  jobId       Int
+  job         Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  applicantId Int
+  applicant   ApplicantDetails  @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  resumeId    Int?              // which resume was submitted
+  resume      Resume?           @relation(fields: [resumeId], references: [id], onDelete: SetNull)
+
+  @@unique([jobId, applicantId])
+  @@index([applicantId])
+}
+
+model SavedJob {
+  applicantId Int
+  jobId       Int
+  savedAt     DateTime         @default(now())
+  applicant   ApplicantDetails @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  job         Job              @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@id([applicantId, jobId])
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  tokenHash String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  revokedAt DateTime?
+  userAgent String?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}

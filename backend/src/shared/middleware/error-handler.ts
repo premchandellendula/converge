@@ -1,6 +1,5 @@
 import type { ErrorRequestHandler } from "express";
 import { ZodError } from "zod";
-import { AppError } from "../errors/app-error.js";
 import { Result, ResultCode } from "../result/result.js";
 
 export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {

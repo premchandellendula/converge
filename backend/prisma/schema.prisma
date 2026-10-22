@@ -250,6 +250,7 @@ model Application {
   applicant   ApplicantDetails  @relation(fields: [applicantId], references: [id], onDelete: Cascade)
   resumeId    Int?              // which resume was submitted
   resume      Resume?           @relation(fields: [resumeId], references: [id], onDelete: SetNull)
+  resumeUrl   String?
 
   @@unique([jobId, applicantId])
   @@index([applicantId])

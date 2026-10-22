@@ -1,6 +1,7 @@
 import { ApplicantController } from "./app/applicant/applicant.controller.js";
 import { ApplicantDao } from "./app/applicant/applicant.dao.js";
 import { ApplicantService } from "./app/applicant/applicant.service.js";
+import { ApplicationDao } from "./app/application/application.dao.js";
 import { RefreshTokenDao } from "./app/auth/refreshToken.dao.js";
 import { EducationDao } from "./app/education/education.dao.js";
 import { JobController } from "./app/job/job.controller.js";
@@ -9,6 +10,7 @@ import { JobService } from "./app/job/job.service.js";
 import { RecruiterController } from "./app/recruiter/recruiter.controller.js";
 import { RecruiterDao } from "./app/recruiter/recruiter.dao.js";
 import { RecruiterService } from "./app/recruiter/recruiter.service.js";
+import { ResumeDao } from "./app/resume/resume.dao.js";
 import { SkillDao } from "./app/skill/skill.dao.js";
 import { UserController } from "./app/user/user.controller.js";
 import { UserDao } from "./app/user/user.dao.js";
@@ -23,11 +25,13 @@ export function buildContainer(prisma: PrismaClient){
     const applicantDao = new ApplicantDao(prisma);
     const recruiterDao = new RecruiterDao(prisma);
     const jobDao = new JobDao(prisma);
+    const applicationDao = new ApplicationDao(prisma);
+    const resumeDao = new ResumeDao(prisma);
 
     const recruiterService = new RecruiterService(recruiterDao, jobDao);
     const jobService = new JobService(jobDao, recruiterService, skillDao);
     const userService = new UserService(userDao, refreshTokenDao);
-    const applicantService = new ApplicantService(applicantDao, educationDao, skillDao);
+    const applicantService = new ApplicantService(applicantDao, educationDao, skillDao, applicationDao, jobService, resumeDao);
 
     const jobController = new JobController(jobService);
     const userController = new UserController(userService);

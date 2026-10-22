@@ -1,4 +1,4 @@
-import type { Prisma } from "../../generated/prisma/client.js";
+import type { JobStatus, Prisma } from "../../generated/prisma/client.js";
 import { Result, ResultCode, ResultWithCount } from "../../shared/result/result.js";
 import type { RecruiterService } from "../recruiter/recruiter.service.js";
 import type { SkillDao } from "../skill/skill.dao.js";
@@ -84,5 +84,13 @@ export class JobService {
         if (skills) data.skills = { set: await this.skillDao.idsForNames(skills) };
 
         return this.jobDao.update(jobId, data);
-        }
+    }
+
+    getForApply(id: number): Promise<Result<{ id: number; status: JobStatus; expiresAt: Date | null }>> {
+        return this.jobDao.read<{ id: number; status: JobStatus; expiresAt: Date | null }>(id, {
+            id: true,
+            status: true,
+            expiresAt: true,
+        });
+    }
 }

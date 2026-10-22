@@ -8,5 +8,7 @@ export function createRecruiterRouter(c: RecruiterController): Router {
     router.get("/me", requireRole("Recruiter"), c.getMe);
     router.patch("/me", requireRole("Recruiter"), c.update);
     router.get("/postings", requireRole("Recruiter"), c.getMyPostings)
+    router.get("/postings/:jobId/applications", requireRole("Recruiter"), c.getJobApplications);
+    router.patch("/applications/:id/status", requireRole("Recruiter"), c.updateApplicationStatus);
     return router;
 }

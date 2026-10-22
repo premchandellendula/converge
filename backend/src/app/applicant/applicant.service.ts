@@ -1,14 +1,25 @@
-import { Result, ResultCode } from "../../shared/result/result.js";
+import type { ApplicationStatus } from "../../generated/prisma/enums.js";
+import { Result, ResultCode, ResultWithCount } from "../../shared/result/result.js";
+import { applicationListSelect, type ApplicationDao, type ApplicationListItem } from "../application/application.dao.js";
 import type { EducationDao } from "../education/education.dao.js";
+import type { JobService } from "../job/job.service.js";
+import type { ResumeDao } from "../resume/resume.dao.js";
 import type { SkillDao } from "../skill/skill.dao.js";
 import type { ApplicantDao, ApplicantResponse } from "./applicant.dao.js";
-import type { CreateApplicantDto, UpdateApplicantDto } from "./applicant.schema.js";
+import type { ApplyToJobDto, CreateApplicantDto, UpdateApplicantDto } from "./applicant.schema.js";
+
+const FINAL_STATUSES: ApplicationStatus[] = ["HIRED", "REJECTED", "WITHDRAWN"];
+
+type ApplyContext = { applicantId: number; resumeId: number; resumeUrl: string };
 
 export class ApplicantService {
     constructor(
         private readonly applicantDao: ApplicantDao,
         private readonly educationDao: EducationDao,
         private readonly skillDao: SkillDao,
+        private readonly applicationDao: ApplicationDao,
+        private readonly jobService: JobService,
+        private readonly resumeDao: ResumeDao
     ) {}
 
     async create(userId: string, dto: CreateApplicantDto): Promise<Result<{ id: number }>> {
@@ -60,5 +71,97 @@ export class ApplicantService {
         return new Result<{ id: number }>(true, ResultCode.NotFound, "Complete your applicant profile first");
         }
         return new Result(false, ResultCode.Success, "Profile found", profile);
+    }
+
+    async apply(userId: string, jobId: number, dto: ApplyToJobDto): Promise<Result<{ id: number }>> {
+        const fail = (code: ResultCode, message: string) => new Result<{ id: number }>(true, code, message);
+
+        const ctx = await this.getApplyContext(userId, dto.resumeId);
+        if (ctx.status.error || !ctx.result) return fail(ctx.status.code, ctx.message ?? "Cannot apply");
+
+        // 2. Can this job take applications right now?
+        const job = await this.jobService.getForApply(jobId);
+        if (job.status.error || !job.result) return fail(job.status.code, job.message ?? "Job not found");
+        if (job.result.status !== "OPEN" || (job.result.expiresAt && job.result.expiresAt < new Date())) {
+        return fail(ResultCode.Conflict, "This job is no longer accepting applications");
+        }
+
+        // 3. Friendly duplicate check (the unique constraint still guards against races)
+        if (await this.applicationDao.readByJobAndApplicant(jobId, ctx.result.applicantId)) {
+            return fail(ResultCode.Conflict, "You have already applied to this job");
+        }
+
+        // 4. Create it. status defaults to APPLIED in the schema
+        return this.applicationDao.create({
+            jobId,
+            applicantId: ctx.result.applicantId,
+            resumeId: ctx.result.resumeId,
+            resumeUrl: ctx.result.resumeUrl,
+            coverLetter: dto.coverLetter,
+        });
+    }
+
+    async listMine(userId: string, page: number, limit: number): Promise<ResultWithCount<ApplicationListItem[]>> {
+        const applicant = await this.getProfileId(userId);
+        if (applicant.status.error || !applicant.result) {
+        return new ResultWithCount<ApplicationListItem[]>(
+            true, applicant.status.code, applicant.message, undefined, null,
+        );
+        }
+
+        return this.applicationDao.readMany<ApplicationListItem>({
+            where: { applicantId: applicant.result.id },
+            select: applicationListSelect,
+            page,
+            count: limit, // newest first by default (createdAt desc)
+        });
+    }
+
+    async getApplyContext(userId: string, resumeId?: number): Promise<Result<ApplyContext>> {
+        const fail = (code: ResultCode, message: string) => new Result<ApplyContext>(true, code, message);
+
+        const profile = await this.applicantDao.readIdByUserId(userId);
+        if (!profile) return fail(ResultCode.NotFound, "Complete your applicant profile first");
+
+        const resume = await this.resumeDao.readForApply(profile.id, resumeId);
+        if (!resume) {
+            return resumeId
+                ? fail(ResultCode.NotFound, "Resume not found")
+                : fail(ResultCode.BadRequest, "Upload a resume before applying");
+        }
+
+        return new Result(false, ResultCode.Success, "Ready to apply", {
+            applicantId: profile.id,
+            resumeId: resume.id,
+            resumeUrl: resume.fileUrl,
+        });
+    }
+
+    async withdrawApplication(userId: string, applicationId: number): Promise<Result<{ id: number }>>{
+        try {
+            const fail = (code: ResultCode, message: string) => new Result<{id: number}>(true, code, message);
+
+            const profile = await this.applicantDao.readIdByUserId(userId);
+            if (!profile) return fail(ResultCode.NotFound, "Complete your applicant profile first");
+
+            const application = await this.applicationDao.read<{ applicantId: number; status: ApplicationStatus }>(applicationId, { applicationId: true, status: true})
+            if (!application.result || application.result.applicantId !== profile.id) {
+                return fail(ResultCode.NotFound, "Application not found");
+            }
+            const current = application.result.status;
+            if (FINAL_STATUSES.includes(current)) {
+                return fail(
+                ResultCode.Conflict,
+                current === "WITHDRAWN"
+                    ? "You have already withdrawn this application"
+                    : `This application is ${current.toLowerCase()} and can no longer be withdrawn`,
+                );
+            }
+
+            return this.applicationDao.update(applicationId, { status: "WITHDRAWN" })
+        } catch (error) {
+            console.log(error);
+            return new Result(true, ResultCode.InternalServerError, "Internal Server error")
+        }
     }
 }

@@ -46,6 +46,22 @@ const profileBase = z.object({
     educations: z.array(educationSchema).max(10).optional(),
 });
 
+export const applyToJobSchema = z
+    .object({
+        resumeId: z.number().int().positive().optional(),
+        coverLetter: z.string().trim().max(3000).optional(),
+    })
+    .strict();
+
+export const jobParamSchema = z.object({
+    id: z.coerce.number().int().positive()
+})
+
+export const applicationIdParamSchema = z.object({
+    id: z.coerce.number().int().positive()
+})
+
+export type ApplyToJobDto = z.infer<typeof applyToJobSchema>;
 export const createApplicantSchema = profileBase.strict();
 export const updateApplicantSchema = profileBase.partial().strict();
 

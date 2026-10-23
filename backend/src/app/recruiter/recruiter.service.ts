@@ -2,6 +2,7 @@ import type { ApplicationStatus, CompanyRole } from "../../generated/prisma/enum
 import { makeSlug } from "../../shared/lib.js";
 import { Result, ResultCode, ResultWithCount } from "../../shared/result/result.js";
 import { applicationForRecruiterSelect, type ApplicationDao, type ApplicationForRecruiter } from "../application/application.dao.js";
+import type { CompanyDao } from "../company/company.dao.js";
 import { jobPostingSelect, type JobDao, type JobListItem, type JobPostingItem } from "../job/job.dao.js";
 import type { RecruiterDao, RecruiterResponse } from "./recruiter.dao.js";
 import type { CreateRecruiterDto, UpdateRecruiterDto } from "./recruiter.schema.js";
@@ -26,15 +27,23 @@ export class RecruiterService {
         private readonly recruiterDao: RecruiterDao,
         private readonly jobsDao: JobDao,
         private readonly applicationDao: ApplicationDao,
+        private readonly companyDao: CompanyDao,
     ) {}
 
     async create(userId: string, dto: CreateRecruiterDto): Promise<Result<{ id: number }>> {
         const existing = await this.recruiterDao.readContextByUserId(userId);
         if (existing) {
-        return new Result<{ id: number }>(true, ResultCode.Conflict, "Profile already exists");
+            return new Result<{ id: number }>(true, ResultCode.Conflict, "Profile already exists");
         }
 
         const { company, ...profile } = dto;
+
+        if (await this.companyDao.existsByName(company.name)) {
+            return new Result<{ id: number }>(
+                true, ResultCode.Conflict,
+                "A company with this name already exists. Ask its admin to invite you.",
+            );
+        }
 
         // One nested write: the company and the recruiter profile are created together or not at all
         return this.recruiterDao.create({

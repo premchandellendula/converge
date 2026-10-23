@@ -129,4 +129,17 @@ export class JobDao extends BaseDao<
             postedWithin,
         };
     }
+
+    readOpenByCompany(companyId: number, page: number, limit: number) {
+        return this.readMany<JobListItem>({
+            where: {
+                companyId,
+                status: "OPEN",
+                OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+                },
+                select: jobListSelect,
+                page,
+                count: limit,
+        });
+    }
 }

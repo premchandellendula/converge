@@ -1,6 +1,7 @@
 import type { ApplicationStatus, CompanyRole } from "../../generated/prisma/enums.js";
 import { makeSlug } from "../../shared/lib.js";
 import { Result, ResultCode, ResultWithCount } from "../../shared/result/result.js";
+import type { FileStorage } from "../../shared/storage/file-storage.js";
 import { applicationForRecruiterSelect, type ApplicationDao, type ApplicationForRecruiter } from "../application/application.dao.js";
 import type { CompanyDao } from "../company/company.dao.js";
 import { jobPostingSelect, type JobDao, type JobListItem, type JobPostingItem } from "../job/job.dao.js";
@@ -28,6 +29,7 @@ export class RecruiterService {
         private readonly jobsDao: JobDao,
         private readonly applicationDao: ApplicationDao,
         private readonly companyDao: CompanyDao,
+        private readonly storage: FileStorage,
     ) {}
 
     async create(userId: string, dto: CreateRecruiterDto): Promise<Result<{ id: number }>> {
@@ -150,5 +152,26 @@ export class RecruiterService {
         }
 
         return this.applicationDao.update(applicationId, { status: next });
+    }
+
+    async getApplicationResumeLink(userId: string, applicationId: number): Promise<Result<{ url: string }>> {
+        const fail = (code: ResultCode, message: string) => new Result<{ url: string }>(true, code, message);
+
+        const ctx = await this.recruiterDao.readContextByUserId(userId);
+        if (!ctx) return fail(ResultCode.NotFound, "Complete your recruiter profile first");
+
+        const found = await this.applicationDao.read<{ resumeKey: string | null; job: { companyId: number } }>(
+            applicationId,
+            { resumeKey: true, job: { select: { companyId: true } } },
+        );
+
+        // Another company's application looks the same as a missing one
+        if (found.status.error || !found.result || found.result.job.companyId !== ctx.companyId) {
+            return fail(ResultCode.NotFound, "Application not found");
+        }
+        if (!found.result.resumeKey) return fail(ResultCode.NotFound, "No resume attached");
+
+        const url = await this.storage.signedUrl("resume", found.result.resumeKey, 60);
+        return new Result(false, ResultCode.Success, "Resume link ready", { url });
     }
 }

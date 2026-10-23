@@ -1,11 +1,12 @@
 import { Router } from "express";
+import type { CompanyController } from "./company.controller.js";
 
-export function createCompanyRouter(): Router {
+export function createCompanyRouter(controller: CompanyController): Router {
     const router = Router();
     
-    router.post("/:id");
-    router.get("/:id/jobs");
-    router.patch("/:id"); // admin
+    router.get("/:id", controller.getCompany);
+    router.get("/:id/jobs", controller.getJobsByCompany);
+    router.patch("/:id", controller.updateCompany); // admin
     return router;
 }
 

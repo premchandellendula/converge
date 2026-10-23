@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { requireRole } from "../../shared/middleware/auth.js";
 import type { ApplicantController } from "./applicant.controller.js";
+import { uploadSingleFile } from "../../shared/middleware/upload.js";
 
 export function createApplicantRouter(c: ApplicantController): Router {
     const router = Router();
@@ -17,6 +18,7 @@ export function createApplicantRouter(c: ApplicantController): Router {
     router.get("/me/saved-jobs", requireRole("Candidate"), c.update);
     router.post("/me/saved-jobs/:id", requireRole("Candidate"), c.update);
     router.delete("/me/saved-jobs/:id", requireRole("Candidate"), c.update);
+    router.post("/me/resumes", candidateOnly, uploadSingleFile, c.uploadResume);
 
     return router;
 }

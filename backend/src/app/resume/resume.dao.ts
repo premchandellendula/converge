@@ -19,4 +19,8 @@ export class ResumeDao extends BaseDao<
             select: { id: true, fileUrl: true },
         });
     }
+
+    countForApplicant(applicantId: number) {
+        return this.prisma.resume.count({ where: { applicantId } });
+    }
 }

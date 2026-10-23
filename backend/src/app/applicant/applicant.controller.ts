@@ -74,4 +74,9 @@ export class ApplicantController {
         const result = await this.service.withdrawApplication(req.user!.id, params.data.id);
         res.status(result.getStatus()).json(result);
     };
+
+    uploadResume = async (req: Request, res: Response) => {
+        const result = await this.service.uploadResume(req.user!.id, req.file);
+        res.status(result.getStatus()).json(result);
+    };
 }

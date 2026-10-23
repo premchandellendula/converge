@@ -1,5 +1,7 @@
+import path from "node:path";
 import type { ApplicationStatus } from "../../generated/prisma/enums.js";
 import { Result, ResultCode, ResultWithCount } from "../../shared/result/result.js";
+import { FileUploader, UPLOAD_RULES } from "../../shared/storage/uploader.js";
 import { applicationListSelect, type ApplicationDao, type ApplicationListItem } from "../application/application.dao.js";
 import type { EducationDao } from "../education/education.dao.js";
 import type { JobService } from "../job/job.service.js";
@@ -11,6 +13,7 @@ import type { ApplyToJobDto, CreateApplicantDto, UpdateApplicantDto } from "./ap
 const FINAL_STATUSES: ApplicationStatus[] = ["HIRED", "REJECTED", "WITHDRAWN"];
 
 type ApplyContext = { applicantId: number; resumeId: number; resumeUrl: string };
+const MAX_RESUMES = 5;
 
 export class ApplicantService {
     constructor(
@@ -19,7 +22,8 @@ export class ApplicantService {
         private readonly skillDao: SkillDao,
         private readonly applicationDao: ApplicationDao,
         private readonly jobService: JobService,
-        private readonly resumeDao: ResumeDao
+        private readonly resumeDao: ResumeDao,
+        private readonly uploader: FileUploader
     ) {}
 
     async create(userId: string, dto: CreateApplicantDto): Promise<Result<{ id: number }>> {
@@ -163,5 +167,34 @@ export class ApplicantService {
             console.log(error);
             return new Result(true, ResultCode.InternalServerError, "Internal Server error")
         }
+    }
+
+    async uploadResume(userId: string, file: Express.Multer.File | undefined): Promise<Result<{ id: number }>>{
+        const fail = (code: ResultCode, message: string) => new Result<{ id: number }>(true, code, message);
+
+        if (!file) return fail(ResultCode.BadRequest, 'Attach a PDF in the "file" field');
+
+        const profile = await this.applicantDao.readIdByUserId(userId);
+        if (!profile) return fail(ResultCode.NotFound, "Complete your applicant profile first");
+
+        if ((await this.resumeDao.countForApplicant(profile.id)) >= MAX_RESUMES) {
+            return fail(ResultCode.Conflict, `You can keep at most ${MAX_RESUMES} resumes. Delete one first.`);
+        }
+
+        const uploaded = await this.uploader.upload(file, UPLOAD_RULES.resume);
+        if (uploaded.status.error || !uploaded.result) {
+            return fail(uploaded.status.code, uploaded.message ?? "Upload failed");
+        }
+
+        const created = await this.resumeDao.create({
+            applicantId: profile.id,
+            fileName: path.basename(file.originalname).replace(/[^\w.\- ]+/g, "_").slice(0, 100),
+            fileUrl: uploaded.result.key,
+        });
+        if (created.status.error) {
+            await this.uploader.discard("resume", uploaded.result.key); // don't leave an orphan file
+            return fail(created.status.code, created.message ?? "Could not save the resume");
+        }
+        return created;
     }
 }

@@ -11,5 +11,12 @@ export function createApplicantRouter(c: ApplicantController): Router {
     router.post("/jobs/:id/applications", candidateOnly, c.apply);
     router.get("/applications/me", candidateOnly, c.listMine);
     router.patch("/applications/:id/withdraw", candidateOnly, c.withdrawApplication);
+    router.get("/me/resumes", requireRole("Candidate"), c.update);
+    router.post("/me/resumes", requireRole("Candidate"), c.update);
+    router.delete("/me/resumes/:id", requireRole("Candidate"), c.update);
+    router.get("/me/saved-jobs", requireRole("Candidate"), c.update);
+    router.post("/me/saved-jobs/:id", requireRole("Candidate"), c.update);
+    router.delete("/me/saved-jobs/:id", requireRole("Candidate"), c.update);
+
     return router;
 }

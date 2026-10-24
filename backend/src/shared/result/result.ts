@@ -9,6 +9,7 @@ export enum ResultCode {
     Forbidden = "403",
     NotFound = "404",
     Conflict = "409",
+    TooManyRequests = "429",
     NoUpdatesPerformed = "NO_UPDATES",
     InternalServerError = "500",
 }
@@ -22,6 +23,7 @@ const httpStatus: Record<ResultCode, number> = {
     [ResultCode.Forbidden]: 403,
     [ResultCode.NotFound]: 404,
     [ResultCode.Conflict]: 409,
+    [ResultCode.TooManyRequests]: 429,
     [ResultCode.NoUpdatesPerformed]: 200,
     [ResultCode.InternalServerError]: 500,
 };

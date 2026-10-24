@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { Result, ResultCode } from "../../shared/result/result.js";
 import type { ApplicantService } from "./applicant.service.js";
-import { applicationIdParamSchema, applyToJobSchema, createApplicantSchema, jobParamSchema, updateApplicantSchema } from "./applicant.schema.js";
+import { applicationIdParamSchema, applyToJobSchema, createApplicantSchema, jobParamSchema, resumeIdParamSchema, savedJobParamSchema, updateApplicantSchema } from "./applicant.schema.js";
 import { pagingSchema } from "../recruiter/recruiter.schema.js";
 
 export class ApplicantController {
@@ -77,6 +77,66 @@ export class ApplicantController {
 
     uploadResume = async (req: Request, res: Response) => {
         const result = await this.service.uploadResume(req.user!.id, req.file);
+        res.status(result.getStatus()).json(result);
+    };
+
+    listResumes = async (req: Request, res: Response) => {
+        const result = await this.service.listResumes(req.user!.id);
+        res.status(result.getStatus()).json(result);
+    };
+
+    getResumeLink = async (req: Request, res: Response) => {
+        const params = resumeIdParamSchema.safeParse(req.params);
+        if (!params.success) {
+            const r = new Result(true, ResultCode.BadRequest, "Incorrect inputs", params.error.issues);
+            res.status(r.getStatus()).json(r);
+            return;
+        }
+        const result = await this.service.getResumeLink(req.user!.id, params.data.id);
+        res.status(result.getStatus()).json(result);
+    };
+
+    deleteResume = async (req: Request, res: Response) => {
+        const params = resumeIdParamSchema.safeParse(req.params);
+        if (!params.success) {
+            const r = new Result(true, ResultCode.BadRequest, "Incorrect inputs", params.error.issues);
+            res.status(r.getStatus()).json(r);
+            return;
+        }
+        const result = await this.service.deleteResume(req.user!.id, params.data.id);
+        res.status(result.getStatus()).json(result);
+    };
+
+    listSavedJobs = async (req: Request, res: Response) => {
+        const query = pagingSchema.safeParse(req.query);
+        if (!query.success) {
+            const r = new Result(true, ResultCode.BadRequest, "Incorrect inputs", query.error.issues);
+            res.status(r.getStatus()).json(r);
+            return;
+        }
+        const result = await this.service.listSavedJobs(req.user!.id, query.data.page, query.data.limit);
+        res.status(result.getStatus()).json(result);
+    };
+
+    saveJob = async (req: Request, res: Response) => {
+        const params = savedJobParamSchema.safeParse(req.params);
+        if (!params.success) {
+            const r = new Result(true, ResultCode.BadRequest, "Incorrect inputs", params.error.issues);
+            res.status(r.getStatus()).json(r);
+            return;
+        }
+        const result = await this.service.saveJob(req.user!.id, params.data.jobId);
+        res.status(result.getStatus()).json(result);
+    };
+
+    unsaveJob = async (req: Request, res: Response) => {
+        const params = savedJobParamSchema.safeParse(req.params);
+        if (!params.success) {
+            const r = new Result(true, ResultCode.BadRequest, "Incorrect inputs", params.error.issues);
+            res.status(r.getStatus()).json(r);
+            return;
+        }
+        const result = await this.service.unsaveJob(req.user!.id, params.data.jobId);
         res.status(result.getStatus()).json(result);
     };
 }

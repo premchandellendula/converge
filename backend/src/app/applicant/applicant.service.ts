@@ -5,10 +5,11 @@ import { FileUploader, UPLOAD_RULES } from "../../shared/storage/uploader.js";
 import { applicationListSelect, type ApplicationDao, type ApplicationListItem } from "../application/application.dao.js";
 import type { EducationDao } from "../education/education.dao.js";
 import type { JobService } from "../job/job.service.js";
-import type { ResumeDao } from "../resume/resume.dao.js";
+import { resumeListSelect, type ResumeDao, type ResumeListItem } from "../resume/resume.dao.js";
 import type { SkillDao } from "../skill/skill.dao.js";
 import type { ApplicantDao, ApplicantResponse } from "./applicant.dao.js";
 import type { ApplyToJobDto, CreateApplicantDto, UpdateApplicantDto } from "./applicant.schema.js";
+import type { SavedJobDao, SavedJobItem } from "../savedJob/savedJob.dao.js";
 
 const FINAL_STATUSES: ApplicationStatus[] = ["HIRED", "REJECTED", "WITHDRAWN"];
 
@@ -23,7 +24,8 @@ export class ApplicantService {
         private readonly applicationDao: ApplicationDao,
         private readonly jobService: JobService,
         private readonly resumeDao: ResumeDao,
-        private readonly uploader: FileUploader
+        private readonly uploader: FileUploader,
+        private readonly savedJobDao: SavedJobDao,
     ) {}
 
     async create(userId: string, dto: CreateApplicantDto): Promise<Result<{ id: number }>> {
@@ -196,5 +198,86 @@ export class ApplicantService {
             return fail(created.status.code, created.message ?? "Could not save the resume");
         }
         return created;
+    }
+
+    async listSavedJobs(userId: string, page: number, limit: number): Promise<ResultWithCount<SavedJobItem[]>> {
+        const applicant = await this.getProfileId(userId);
+        if (applicant.status.error || !applicant.result) {
+            return new ResultWithCount<SavedJobItem[]>(true, applicant.status.code, applicant.message, undefined, null);
+        }
+        const { items, total } = await this.savedJobDao.list(applicant.result.id, page, limit);
+        return new ResultWithCount(false, ResultCode.Success, "Saved jobs fetched", items, total);
+    }
+
+    async saveJob(userId: string, jobId: number): Promise<Result<{ jobId: number }>> {
+        const fail = (code: ResultCode, message: string) => new Result<{ jobId: number }>(true, code, message);
+
+        const applicant = await this.getProfileId(userId);
+        if (applicant.status.error || !applicant.result) return fail(applicant.status.code, applicant.message ?? "Profile not found");
+
+        const job = await this.jobService.getForApply(jobId);
+        if (job.status.error || !job.result) return fail(job.status.code, job.message ?? "Job not found");
+        if (job.result.status !== "OPEN") return fail(ResultCode.Conflict, "This job is closed");
+
+        await this.savedJobDao.save(applicant.result.id, jobId);
+        return new Result(false, ResultCode.Success, "Job saved", { jobId });
+    }
+
+    async unsaveJob(userId: string, jobId: number): Promise<Result<{ jobId: number }>> {
+        const applicant = await this.getProfileId(userId);
+        if (applicant.status.error || !applicant.result) {
+            return new Result<{ jobId: number }>(true, applicant.status.code, applicant.message);
+        }
+        await this.savedJobDao.remove(applicant.result.id, jobId); // removing something not saved is fine too
+        return new Result(false, ResultCode.Success, "Job removed from saved", { jobId });
+    }
+
+    async listResumes(userId: string): Promise<ResultWithCount<ResumeListItem[]>> {
+        const applicant = await this.getProfileId(userId);
+        if (applicant.status.error || !applicant.result) {
+            return new ResultWithCount<ResumeListItem[]>(true, applicant.status.code, applicant.message, undefined, null);
+        }
+        return this.resumeDao.readMany<ResumeListItem>({
+            where: { applicantId: applicant.result.id },
+            select: resumeListSelect,
+            field: "uploadedAt",
+            nonPaginated: true,
+        });
+    }
+
+    async getResumeLink(userId: string, resumeId: number): Promise<Result<{ url: string }>> {
+        const fail = (code: ResultCode, message: string) => new Result<{ url: string }>(true, code, message);
+
+        const applicant = await this.getProfileId(userId);
+        if (applicant.status.error || !applicant.result) return fail(applicant.status.code, applicant.message ?? "Profile not found");
+
+        const resume = await this.resumeDao.readOwned(applicant.result.id, resumeId);
+        if (!resume) return fail(ResultCode.NotFound, "Resume not found");
+
+        try {
+            const url = await this.uploader.getSignedUrl("resume", resume.fileKey, 60);
+            return new Result(false, ResultCode.Success, "Resume link ready", { url });
+        } catch (error) {
+            console.error(error);
+            return fail(ResultCode.InternalServerError, "Could not create the link");
+        }
+    }
+
+    async deleteResume(userId: string, resumeId: number): Promise<Result<{ id: number }>> {
+        const fail = (code: ResultCode, message: string) => new Result<{ id: number }>(true, code, message);
+
+        const applicant = await this.getProfileId(userId);
+        if (applicant.status.error || !applicant.result) return fail(applicant.status.code, applicant.message ?? "Profile not found");
+
+        const resume = await this.resumeDao.readOwned(applicant.result.id, resumeId);
+        if (!resume) return fail(ResultCode.NotFound, "Resume not found");
+
+        const deleted = await this.resumeDao.delete(resumeId);
+        if (deleted.status.error) return fail(deleted.status.code, deleted.message ?? "Could not delete");
+
+        if ((await this.applicationDao.countByResumeKey(resume.fileKey)) === 0) {
+            await this.uploader.discard("resume", resume.fileKey);
+        }
+        return deleted;
     }
 }

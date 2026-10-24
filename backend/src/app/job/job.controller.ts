@@ -26,8 +26,24 @@ export class JobController {
     }
 
     getById = async (req: Request, res: Response) => {
-        const { id } = jobIdParamSchema.parse(req.params);
-        const result = await this.jobService.getById(id);
+        const params = jobIdParamSchema.safeParse(req.params);
+        if (!params.success) {
+            const r = new Result(true, ResultCode.BadRequest, "Incorrect inputs", params.error.issues);
+            res.status(r.getStatus()).json(r);
+            return;
+        }
+        const result = await this.jobService.getById(params.data.id);
+        res.status(result.getStatus()).json(result);
+    };
+
+    remove = async (req: Request, res: Response) => {
+        const params = jobIdParamSchema.safeParse(req.params);
+        if (!params.success) {
+            const r = new Result(true, ResultCode.BadRequest, "Incorrect inputs", params.error.issues);
+            res.status(r.getStatus()).json(r);
+            return;
+        }
+        const result = await this.jobService.remove(req.user!.id, params.data.id);
         res.status(result.getStatus()).json(result);
     };
 

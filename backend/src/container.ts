@@ -22,6 +22,9 @@ import { env } from "./config/env.js";
 import { SupabaseFileStorage } from "./shared/storage/supabase.storage.js";
 import { CompanyController } from "./app/company/company.controller.js";
 import { FileUploader } from "./shared/storage/uploader.js";
+import { SavedJobDao } from "./app/savedJob/savedJob.dao.js";
+import { SkillService } from "./app/skill/skill.service.js";
+import { SkillController } from "./app/skill/skill.controller.js";
 
 export function buildContainer(prisma: PrismaClient){
     const storage = new SupabaseFileStorage(env.supabaseUrl, env.supabaseKey);
@@ -37,20 +40,23 @@ export function buildContainer(prisma: PrismaClient){
     const applicationDao = new ApplicationDao(prisma);
     const resumeDao = new ResumeDao(prisma);
     const companyDao = new CompanyDao(prisma);
+    const savedJobDao = new SavedJobDao(prisma);
 
     const recruiterService = new RecruiterService(recruiterDao, jobDao, applicationDao, companyDao, storage);
     const jobService = new JobService(jobDao, recruiterService, skillDao);
     const userService = new UserService(userDao, refreshTokenDao);
-    const applicantService = new ApplicantService(applicantDao, educationDao, skillDao, applicationDao, jobService, resumeDao, uploader);
-    const companyService = new CompanyService(companyDao, recruiterService, jobDao)
+    const applicantService = new ApplicantService(applicantDao, educationDao, skillDao, applicationDao, jobService, resumeDao, uploader, savedJobDao);
+    const companyService = new CompanyService(companyDao, recruiterService, jobDao);
+    const skillService = new SkillService(skillDao);
 
     const jobController = new JobController(jobService);
     const userController = new UserController(userService);
     const applicantController = new ApplicantController(applicantService);
     const recruiterController = new RecruiterController(recruiterService);
     const companyController = new CompanyController(companyService);
+    const skillController = new SkillController(skillService);
 
-    return { jobController, userController, applicantController, recruiterController, companyController }
+    return { jobController, userController, applicantController, recruiterController, companyController, skillController }
 }
 
 export type Container = ReturnType<typeof buildContainer>;

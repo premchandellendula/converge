@@ -48,6 +48,17 @@ const orderByMap: Record<ListJobsQuery["sort"], Prisma.JobOrderByWithRelationInp
     popular: [{ applications: { _count: "desc" } }, { id: "desc" }],
 };
 
+export const jobDetailSelect = {
+    ...jobListSelect,
+    description: true,
+    openings: true,
+    status: true,
+    expiresAt: true,
+    updatedAt: true,
+} satisfies Prisma.JobSelect;
+
+export type JobDetail = Prisma.JobGetPayload<{ select: typeof jobDetailSelect }>;
+
 export class JobDao extends BaseDao<
     Job,
     number,
@@ -141,5 +152,9 @@ export class JobDao extends BaseDao<
                 page,
                 count: limit,
         });
+    }
+
+    countApplications(jobId: number) {
+        return this.prisma.application.count({ where: { jobId } });
     }
 }

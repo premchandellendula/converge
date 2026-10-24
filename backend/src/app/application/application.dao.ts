@@ -56,4 +56,8 @@ export class ApplicationDao extends BaseDao<
             select: { id: true },
         });
     }
+
+    countByResumeKey(resumeKey: string) {
+        return this.prisma.application.count({ where: { resumeUrl: resumeKey } });
+    }
 }

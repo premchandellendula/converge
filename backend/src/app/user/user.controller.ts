@@ -70,4 +70,9 @@ export class UserController {
         const r = new Result(false, ResultCode.Success, message, { user });
         res.status(r.getStatus()).json(r);
     }
+
+    me = async (req: Request, res: Response) => {
+        const result = await this.service.me(req.user!.id);
+        res.status(result.getStatus()).json(result);
+    };
 }

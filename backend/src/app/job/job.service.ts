@@ -93,4 +93,34 @@ export class JobService {
             expiresAt: true,
         });
     }
+
+    private async loadManageableJob(userId: string, jobId: number): Promise<Result<{ id: number }>> {
+        const fail = (code: ResultCode, message: string) => new Result<{ id: number }>(true, code, message);
+
+        const ctx = await this.recruiterService.getContext(userId);
+        if (ctx.status.error || !ctx.result) return fail(ctx.status.code, ctx.message ?? "Recruiter profile not found");
+
+        const found = await this.jobDao.read<{ id: number; companyId: number; postedById: number }>(
+            jobId, { id: true, companyId: true, postedById: true },
+        );
+        if (found.status.error || !found.result) return fail(found.status.code, found.message ?? "Job not found");
+
+        const job = found.result;
+        const allowed =
+            job.companyId === ctx.result.companyId &&
+            (job.postedById === ctx.result.id || ctx.result.companyRole === "ADMIN");
+        if (!allowed) return fail(ResultCode.Forbidden, "You cannot manage this job");
+
+        return new Result(false, ResultCode.Success, "OK", { id: job.id });
+    }
+
+    async remove(userId: string, jobId: number): Promise<Result<{ id: number }>> {
+        const allowed = await this.loadManageableJob(userId, jobId);
+        if (allowed.status.error) return allowed;
+
+        if ((await this.jobDao.countApplications(jobId)) > 0) {
+            return new Result<{ id: number }>(true, ResultCode.Conflict, "This job has applications. Close it instead of deleting it.");
+        }
+        return this.jobDao.delete(jobId);
+    }
 }

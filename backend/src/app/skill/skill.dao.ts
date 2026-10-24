@@ -25,4 +25,13 @@ export class SkillDao extends BaseDao<
             select: { id: true },
         });
     }
+
+    search(q: string, limit: number) {
+        return this.prisma.skill.findMany({
+            where: { name: { contains: q, mode: "insensitive" } },
+            select: { id: true, name: true },
+            orderBy: { name: "asc" },
+            take: limit,
+        });
+    }
 }

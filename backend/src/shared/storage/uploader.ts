@@ -82,4 +82,7 @@ export class FileUploader {
     async discard(bucket: BucketName, key: string) {
         await this.storage.remove(bucket, key).catch((e) => console.error("Cleanup failed", e));
     }
+    getSignedUrl(bucket: BucketName, key: string, expiresInSeconds: number) {
+        return this.storage.signedUrl(bucket, key, expiresInSeconds);
+    }
 }

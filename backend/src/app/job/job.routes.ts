@@ -11,5 +11,6 @@ export function createJobRouter(controller: JobController): Router {
     router.get("/facets", controller.facets);
     router.get("/:id", controller.getById);
     router.patch("/:id", recruiterOnly, controller.update);
+    router.delete("/:id", recruiterOnly, controller.remove);
     return router;
 }

@@ -93,4 +93,17 @@ export class UserService {
         });
         return { accessToken: signAccessToken(user), refreshToken, user };
     }
+
+    async me(userId: string) {
+        const user = await this.userDao.readMe(userId);
+        if (!user) {
+            return new Result<null>(true, ResultCode.NotAuthorized, "Account not found");
+        }
+
+        const { applicant, recruiter, ...rest } = user;
+        return new Result(false, ResultCode.Success, "Current user", {
+            ...rest,
+            hasProfile: user.role === "Candidate" ? applicant !== null : recruiter !== null,
+        });
+    }
 }

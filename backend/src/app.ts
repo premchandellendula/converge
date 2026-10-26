@@ -5,9 +5,11 @@ import { createV1Router } from "./app/routes/v1.js";
 import cookieParser from "cookie-parser";
 import { authMiddleware } from "./shared/middleware/auth.js";
 import { globalLimiter } from "./shared/middleware/rate-limit.js";
+import { corsMiddleware } from "./shared/middleware/cors.js";
 
 export function createApp(container: Container){
     const app = express();
+    app.use(corsMiddleware);
     app.use(express.json());
     app.use(cookieParser());
     app.use(authMiddleware);

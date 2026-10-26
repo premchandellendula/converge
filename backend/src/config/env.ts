@@ -6,5 +6,9 @@ function required(name: string): string {
 
 export const env = {
     supabaseUrl: required("SUPABASE_URL"),
-    supabaseKey: required("SUPABASE_SERVICE_ROLE_KEY")
+    supabaseKey: required("SUPABASE_SERVICE_ROLE_KEY"),
+    corsOrigins: (process.env.CORS_ORIGINS ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
 }

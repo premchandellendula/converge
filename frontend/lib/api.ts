@@ -19,7 +19,7 @@ export function setSessionExpiredHandler(handler: () => void) {
 }
 
 let expiring = false;
-function expireSession() {
+export function expireSession() {
     if (expiring) return;
     expiring = true;
     onSessionExpired();
@@ -30,7 +30,7 @@ function expireSession() {
 
 let refreshing: Promise<boolean> | null = null;
 
-function refreshSession(): Promise<boolean> {
+export function refreshSession(): Promise<boolean> {
     refreshing ??= fetch(`${API_BASE}/users/refresh`, { method: "POST", credentials: "include" })
         .then((res) => res.ok)
         .catch(() => false)

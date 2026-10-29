@@ -1,8 +1,10 @@
+"use client";
+
 import { Role, useMe } from "@/lib/auth";
 import { friendlyMessage } from "@/lib/notify";
 import { homeFor, landingFor } from "@/providers/authProvider";
 import { usePathname } from "next/navigation";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 import { ReactNode, useEffect } from "react";
 
 export function AuthGuard({

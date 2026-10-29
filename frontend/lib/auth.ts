@@ -20,7 +20,7 @@ export function useMe(){
         queryKey: meKey,
         queryFn: async () => {
             try {
-                return await request("/auth/me");
+                return await request("/users/me");
             } catch (error) {
                 if(error instanceof ApiError && error.status === 401) return null;
                 throw error;

@@ -1,11 +1,24 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { dataProvider, HttpError, queryKeys } from "@/providers/dataProvider";
+import { CreateJobBody } from "@/lib/types";
 import { JobForm } from "./JobForm";
+
+type CreateJobResult = Awaited<ReturnType<typeof dataProvider.create>>;
 
 export default function NewJobPage() {
     const router = useRouter();
-    const create = useCreateJob();
+    const queryClient = useQueryClient();
+
+    const create = useMutation<CreateJobResult, HttpError, CreateJobBody>({
+        mutationFn: (body: CreateJobBody) => dataProvider.create("jobs", { data: body }),
+        onSuccess: () => {
+            void queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
+            router.push("/recruiter/jobs");
+        }
+    });
 
     return (
         <main className="mx-auto w-full max-w-3xl space-y-6 p-6">
@@ -18,7 +31,7 @@ export default function NewJobPage() {
             onEdit={() => {
             if (create.isError) create.reset(); // the last server answer no longer applies
             }}
-            onSubmit={(body) => create.mutate(body, { onSuccess: () => router.push("/recruiter/jobs") })}
+            onSubmit={(body) => create.mutate(body)}
         />
         </main>
     );

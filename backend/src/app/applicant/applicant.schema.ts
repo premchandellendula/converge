@@ -61,7 +61,7 @@ export const applicationIdParamSchema = z.object({
     id: z.coerce.number().int().positive()
 })
 export const resumeIdParamSchema = z.object({ id: z.coerce.number().int().positive() });
-export const savedJobParamSchema = z.object({ jobId: z.coerce.number().int().positive() });
+export const savedJobParamSchema = z.object({ id: z.coerce.number().int().positive() });
 
 export type ApplyToJobDto = z.infer<typeof applyToJobSchema>;
 export const createApplicantSchema = profileBase.strict();

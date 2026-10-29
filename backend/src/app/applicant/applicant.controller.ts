@@ -125,7 +125,7 @@ export class ApplicantController {
             res.status(r.getStatus()).json(r);
             return;
         }
-        const result = await this.service.saveJob(req.user!.id, params.data.jobId);
+        const result = await this.service.saveJob(req.user!.id, params.data.id);
         res.status(result.getStatus()).json(result);
     };
 
@@ -136,7 +136,7 @@ export class ApplicantController {
             res.status(r.getStatus()).json(r);
             return;
         }
-        const result = await this.service.unsaveJob(req.user!.id, params.data.jobId);
+        const result = await this.service.unsaveJob(req.user!.id, params.data.id);
         res.status(result.getStatus()).json(result);
     };
 }

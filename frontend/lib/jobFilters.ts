@@ -122,7 +122,7 @@ export function toApiFilters(f: UiFilters): JobFilters {
         q: f.q || undefined,
         jobType: f.jobType,
         workMode: f.workMode,
-        locations: f.location,
+        location: f.location,
         expMin: exp?.min,
         expMax: exp?.max ?? undefined,
         salaryMin: salary ? salary.min * LPA : undefined,

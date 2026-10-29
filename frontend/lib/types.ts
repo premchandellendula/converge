@@ -45,7 +45,7 @@ export interface JobFilterSet {
     q?: string;
     jobType?: JobType[];
     workMode?: WorkMode[];
-    locations?: string[];
+    location?: string[];
     expMin?: number;
     expMax?: number;
     salaryMin?: number;
@@ -76,3 +76,22 @@ export interface CreateJobBody {
 }
 
 export type UpdateJobBody = Partial<CreateJobBody> & { status?: JobStatus };
+
+export interface SavedJobItem {
+    savedAt: string;
+    job: JobListItem & { status: JobStatus; expiresAt: string | null };
+}
+
+export interface MyApplicationItem {
+    id: number;
+    status: ApplicationStatus;
+    coverLetter: string | null;
+    createdAt: string;
+    job: {
+        id: number;
+        title: string;
+        location: string;
+        status: JobStatus;
+        company: { name: string; logoUrl: string | null };
+    };
+}

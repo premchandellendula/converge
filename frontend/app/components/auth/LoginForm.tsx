@@ -82,7 +82,7 @@ export function LoginForm({onSuccess, singupHref = "/signup"}: LoginFormProps){
     const [showPassword, setShowPassword] = useState(false);
 
     const login = useMutation<{ user: LoginUser }, ApiError, LoginBody>({
-        mutationFn: (body) => request<{ user: LoginUser }>("/auth/login", { method: "POST", body: JSON.stringify(body)}),
+        mutationFn: (body) => request<{ user: LoginUser }>("/users/login", { method: "POST", body: JSON.stringify(body)}),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: meKey });
             toast.success("Welcome back");

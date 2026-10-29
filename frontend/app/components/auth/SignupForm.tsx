@@ -92,7 +92,7 @@ export function SignupForm({ onSuccess, loginHref = "/login", defaultRole = "Can
     const [showPassword, setShowPassword] = useState(false);
 
     const signup = useMutation<{ user: SignupUser }, ApiError, SignupBody>({
-        mutationFn: (body) => request<{ user: SignupUser }>("api/v1/auth/signup", { method: "POST", body: JSON.stringify(body)}),
+        mutationFn: (body) => request<{ user: SignupUser }>("/users/signup", { method: "POST", body: JSON.stringify(body)}),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: meKey })
             toast.success("Account created");

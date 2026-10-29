@@ -1,3 +1,5 @@
+import { API_BASE } from "@/providers/api.config";
+
 export interface ApiResult<T> {
     status: { code: string; error: boolean };
     message?: string;
@@ -5,10 +7,9 @@ export interface ApiResult<T> {
     count?: number | null;
 }
 
-const BASE = "/api/v1"; 
-const NO_REFRESH = new Set(["/auth/login", "/auth/signup", "/auth/refresh", "/auth/logout"]);
+const NO_REFRESH = new Set(["/users/login", "/users/signup", "/users/refresh", "/users/logout"]);
 
-const SILENT_WHEN_EXPIRED = new Set(["/auth/me"]);
+const SILENT_WHEN_EXPIRED = new Set(["/users/me"]);
 
 let onSessionExpired: () => void = () => {
     window.location.assign("/login");
@@ -30,7 +31,7 @@ function expireSession() {
 let refreshing: Promise<boolean> | null = null;
 
 function refreshSession(): Promise<boolean> {
-    refreshing ??= fetch(`${BASE}/auth/refresh`, { method: "POST", credentials: "include" })
+    refreshing ??= fetch(`${API_BASE}/users/refresh`, { method: "POST", credentials: "include" })
         .then((res) => res.ok)
         .catch(() => false)
         .finally(() => {
@@ -75,11 +76,11 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<ApiR
     const route = path.split("?")[0] ?? path;
     const options = buildInit(init);
 
-    let res = await fetch(`${BASE}${path}`, options);
+    let res = await fetch(`${API_BASE}${path}`, options);
 
     if (res.status === 401 && !NO_REFRESH.has(route)) {
         if (await refreshSession()) {
-            res = await fetch(`${BASE}${path}`, options); // retry once with the new cookies
+            res = await fetch(`${API_BASE}${path}`, options); // retry once with the new cookies
         } else if (!SILENT_WHEN_EXPIRED.has(route)) {
             expireSession();
         }

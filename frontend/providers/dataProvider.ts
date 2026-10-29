@@ -1,32 +1,16 @@
-import type { Role } from "@/lib/auth";
-import { request } from "@/lib/request";
+import { toQueryString } from "@/lib/queryString";
+import { request, requestList } from "@/lib/request";
 
-export interface AuthUser {
-    id: string;
-    role: Role;
-}
+export const dataProvider = {
+    getList: <T>(resource: string, params: object = {}) => requestList<T>(`/${resource}${toQueryString(params)}`),
 
-export interface SignupBody {
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone?: string;
-    password: string;
-    role: Role;
-}
+    getOne: <T>(resource: string, id: number | string) => request<T>(`/${resource}/${id}`),
 
-export interface LoginBody {
-    email: string;
-    password: string;
-}
+    create: <T = { id: number | string}>(resource: string, data: object) => request<T>(`/${resource}`, { method: "POST", body: JSON.stringify(data)  }),
+    
+    update: <T = { id: number | string }>(resource: string, id: number | string, data: object) => request<T>(`/${resource}/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
 
-// "Who am I?" stays in lib/auth.ts as the useMe() hook.
-export const authApi = {
-    signup: (body: SignupBody) =>
-        request<{ user: AuthUser }>("/auth/signup", { method: "POST", body: JSON.stringify(body) }),
+    remove: <T = { id: number | string }>(resource: string, id: number | string) => request<T>(`/${resource}/${id}`, { method: "DELETE" }),
+} as const;
 
-    login: (body: LoginBody) =>
-        request<{ user: AuthUser }>("/auth/login", { method: "POST", body: JSON.stringify(body) }),
-
-    logout: () => request<null>("/auth/logout", { method: "POST" }),
-};
+export type DataProvider = typeof dataProvider;

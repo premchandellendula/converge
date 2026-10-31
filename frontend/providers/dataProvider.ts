@@ -349,7 +349,14 @@ export const dataProvider = {
             method: "DELETE"
         });
         return json.result;
-    }
+    },
+
+    uploadResume: (file: File) => {
+        const form = new FormData();
+        form.append("file", file); // the backend reads the field called "file"
+        return HttpClient<{ id: number }>("/applicants/me/resumes", { method: "POST", body: form });
+    },
+    // searchSkills: (q: string, limit = 10) => get<SkillOption[]>(`/skills${query({ q, limit })}`),
 } as const;
 
 export type DataProvider = typeof dataProvider;

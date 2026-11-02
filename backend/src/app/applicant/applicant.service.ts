@@ -34,7 +34,7 @@ export class ApplicantService {
             return new Result<{ id: number }>(true, ResultCode.Conflict, "Profile already exists");
         }
 
-        const { skills, educations, ...profile } = dto;
+        const { skills, educations, workExperiences, ...profile } = dto;
         const skillIds = await this.skillDao.idsForNames(skills ?? []);
 
         return this.applicantDao.create({
@@ -42,6 +42,12 @@ export class ApplicantService {
             user: { connect: { id: userId } },
             skills: { connect: skillIds },
             educations: { create: educations ?? [] },
+            workExperiences:  {
+                create: (workExperiences ?? []).map((x) => ({
+                    ...x,
+                    endDate: x.isCurrent ? null : x.endDate, // a current job has no end date
+                })),
+            }
         });
     }
 
@@ -59,7 +65,7 @@ export class ApplicantService {
             return new Result<{ id: number }>(true, ResultCode.NotFound, "Complete your applicant profile first");
         }
 
-        const { skills, educations, ...fields } = dto;
+        const { skills, educations, workExperiences, ...fields } = dto;
         const data: Parameters<ApplicantDao["update"]>[1] = { ...fields };
         if (skills) data.skills = { set: await this.skillDao.idsForNames(skills) }; // replaces the list
 

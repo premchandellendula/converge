@@ -1,10 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Draft, Errors } from "../components/onboarding/draft"
+import { buildBody, Draft, EMPTY_DRAFT, Errors, mapServerIssues, validateEducation, validateExperience, validatePreferences, validateSkill } from "../components/onboarding/draft"
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { dataProvider, HttpError } from "@/providers/dataProvider";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { dataProvider, HttpError, queryKeys } from "@/providers/dataProvider";
 import { friendlyMessage } from "@/lib/notify";
 import { Alert, primaryButton, secondaryButton } from "../components/ui";
 import { StepEducation } from "../components/onboarding/StepEducation";
@@ -12,76 +12,43 @@ import StepSkills from "../components/onboarding/StepSkills";
 import { StepExperience } from "../components/onboarding/StepExperience";
 import { StepResume } from "../components/onboarding/StepResume";
 import { Stepper } from "../components/onboarding/Stepper";
+import { useMe } from "@/lib/auth";
+import { homeFor } from "@/providers/authProvider";
+import { StepPreferences } from "../components/onboarding/StepPreferences";
 
 const STEPS = [
     { id: "education", label: "Education", title: "Your education", hint: "Add your schooling and degrees." },
     { id: "skills", label: "Skills", title: "Your skills", hint: "Recruiters search by skill, so add the ones you're best at." },
     { id: "experience", label: "Experience", title: "Your experience", hint: "Tell us how much work experience you have." },
+    { id: "preferences", label: "Preferences", title: "Your preferences", hint: "Salary, notice period and where you'd like to work." },
     { id: "resume", label: "Resume", title: "Your resume", hint: "Upload a PDF so you can apply to jobs in one click." },
 ] as const;
 
 type StepId = (typeof STEPS)[number]["id"];
-const LAST_FORM_STEP = 2;
+const LAST_FORM_STEP = 3;
 const YEAR = /^\d{4}$/;
 const WHOLE_NUMBER = /^\d{1,2}$/;
 
-const initialDraft = (): Draft => ({
-    educations: [],
-    skills: [],
-    fresher: false,
-    years: "",
-    months: "",
-    location: ""
-})
 
 function validate(step: StepId, draft: Draft): Errors {
-    const errors: Errors = {};
-    if(step === "education"){
-        for(const edu of draft.educations){
-            const key = (field: string) => `edu.${edu.key}.${field}`;
-            const start = edu.startYear.trim();
-            const end = edu.endYear.trim();
-
-            if (!edu.institution.trim()) errors[key("institution")] = "Enter your school or college";
-            else if (edu.institution.trim().length > 150) errors[key("institution")] = "Keep this under 150 characters";
-
-            if (edu.course.trim().length > 100) errors[key("course")] = "Keep this under 100 characters";
-
-            if (!YEAR.test(start)) errors[key("startYear")] = "Enter a 4-digit year";
-            if (!YEAR.test(end)) errors[key("endYear")] = "Enter a 4-digit year";
-            else if (YEAR.test(start) && Number(end) < Number(start)) errors[key("endYear")] = "Can't be before the start year";
-
-            if (edu.score.trim()) {
-                const max = edu.scoreType === "CGPA" ? 10 : 100;
-                const n = Number(edu.score);
-                if (!Number.isFinite(n) || n < 0 || n > max) errors[key("score")] = `Enter a score between 0 and ${max}`;
-            }
-        }
-    }
-    if (step === "skills" && draft.skills.length === 0) {
-        errors.skills = "Add at least one skill";
-    }
-    if (step === "experience") {
-        if (!draft.fresher) {
-            if (!WHOLE_NUMBER.test(draft.years.trim())) errors.years = "Enter your years of experience";
-            if (draft.months.trim() && (!WHOLE_NUMBER.test(draft.months.trim()) || Number(draft.months) > 11)) {
-                errors.months = "Enter a number from 0 to 11";
-            }
-        }
-        if (draft.location.trim().length > 150) errors.location = "Keep this under 150 characters";
-    }
-    return errors;
+    if(step === "education") return validateEducation(draft);
+    if (step === "skills") return validateSkill(draft);
+    if (step === "experience") return validateExperience(draft);
+    if (step === "preferences") return validatePreferences(draft);
+    return {};
 }
 
 export default function Onboarding(){
     const router = useRouter();
+    const queryClient = useQueryClient();
+    const { data: me } = useMe()
     const [step, setStep] = useState(0);
-    const [draft, setDraft] = useState<Draft>(initialDraft);
+    const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
     const [errors, setErrors] = useState<Errors>({});
 
     const current = STEPS[step];
     const save = useMutation<unknown, HttpError, Draft>({
-        // mutationFn: (value) => dataProvider.saveOnboarding(value);
+        mutationFn: (value) => dataProvider.create("applicants", { data: buildBody(value) })
     })
 
     const goTo = (index: number) => {
@@ -90,7 +57,10 @@ export default function Onboarding(){
         setStep(index);
     }
 
-    const finish = () => router.replace("/");
+    const finish = async () => {
+        await queryClient.invalidateQueries({ queryKey: queryKeys.me });
+        router.replace(me ? homeFor(me.role) : "/");
+    };
     // Once an error has been shown, re-check as the person types so it clears right away.
     const patch = (changes: Partial<Draft>) => {
         const next = { ...draft, ...changes };
@@ -103,11 +73,22 @@ export default function Onboarding(){
         setErrors(found);
         if(Object.keys(found).length > 0) return;
 
-        if(step === LAST_FORM_STEP){
-            save.mutate(draft, { onSuccess: () => goTo(step + 1)});
-        }else {
+        if(step < LAST_FORM_STEP){
             goTo(step + 1);
+            return;
         }
+        save.mutate(draft, {
+            onSuccess: () => goTo(step + 1),
+            onError: (error) => {
+                // The server found something our checks missed: show it next to its field
+                // and send the person back to the step it belongs to.
+                const { errors: serverErrors, step: target } = mapServerIssues(error.issues ?? [], draft);
+                if (target !== null) {
+                    setErrors(serverErrors);
+                    setStep(target);
+                }
+            },
+        });
     }
 
     return (
@@ -139,6 +120,7 @@ export default function Onboarding(){
                 {current.id === "education" && <StepEducation draft={draft} errors={errors} onChange={patch} />}
                 {current.id === "skills" && <StepSkills draft={draft} errors={errors} onChange={patch} />}
                 {current.id === "experience" && <StepExperience draft={draft} errors={errors} onChange={patch} />}
+                {current.id === "preferences" && <StepPreferences draft={draft} errors={errors} onChange={patch} />}
                 {current.id === "resume" && <StepResume onDone={finish} onSkip={finish} />}
 
                 {current.id !== "resume" && (

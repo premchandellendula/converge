@@ -7,7 +7,7 @@ import { uploadLimiter } from "../../shared/middleware/rate-limit.js";
 export function createApplicantRouter(c: ApplicantController): Router {
     const router = Router();
     const candidateOnly = requireRole("Candidate");
-    router.post("/me", requireRole("Candidate"), c.create);
+    router.post("/", requireRole("Candidate"), c.create);
     router.get("/me", requireRole("Candidate"), c.getMe);
     router.patch("/me", requireRole("Candidate"), c.update);
 

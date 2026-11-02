@@ -95,3 +95,5 @@ export interface MyApplicationItem {
         company: { name: string; logoUrl: string | null };
     };
 }
+
+export interface SkillOption { id: number; name: string }

@@ -5,13 +5,16 @@
  * Empty values (undefined, null, "", empty arrays) are left out. Arrays become one comma-separated value,
  * which is the format the backend's filter schema expects.
  */
+const REPEAT_KEYS = new Set(["location"])
 export function toQueryString(params: object): string {
     const search = new URLSearchParams();
 
     for (const [key, value] of Object.entries(params as Record<string, unknown>)) {
         if (value === undefined || value === null || value === "") continue;
         if (Array.isArray(value)) {
-            if (value.length > 0) search.set(key, value.join(","));
+            if(value.length === 0) continue;
+            if(REPEAT_KEYS.has(key)) value.forEach((v) => search.append(key, String(v)));
+            search.set(key, value.join(","));
         } else {
             search.set(key, String(value));
         }

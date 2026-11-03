@@ -2,7 +2,7 @@
 
 import { Role, useMe } from "@/lib/auth";
 import { friendlyMessage } from "@/lib/notify";
-import { homeFor, landingFor } from "@/providers/authProvider";
+import { homeFor, landingFor, onboardingFor } from "@/providers/authProvider";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { ReactNode, useEffect } from "react";
@@ -30,7 +30,7 @@ export function AuthGuard({
         }else if (allow !== "authenticated" && me.role !== allow){
             redirectTo = landingFor(me);
         }else if(profile === "required" && !me.hasProfile){
-            redirectTo = "/onboarding"
+            redirectTo = onboardingFor(me.role)
         }else if(profile === "none" && me.hasProfile){
             redirectTo = homeFor(me.role)
         }

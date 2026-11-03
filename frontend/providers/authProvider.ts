@@ -45,9 +45,14 @@ export function homeFor(role: Role): string {
     return role === "Recruiter" ? "/recruiter/jobs" : "/jobs";
 }
 
+/** Where each role completes its profile. */
+export function onboardingFor(role: Role): string {
+    return role === "Recruiter" ? "/recruiter/onboarding" : "/onboarding";
+}
+
 /** Where a logged-in user belongs right now: onboarding until the profile exists, then home. */
 export function landingFor(me: Me): string {
-    return me.hasProfile ? homeFor(me.role) : "/onboarding";
+    return me.hasProfile ? homeFor(me.role) : onboardingFor(me.role);
 }
 
 /** Accepts only paths inside this site, so "?next=https://evil.example" can never redirect away. */

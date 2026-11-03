@@ -2,6 +2,12 @@ import z from "zod";
 import { JobStatus, JobType, WorkMode } from "../../generated/prisma/enums.js";
 import { currencySchema } from "../../shared/lib.js";
 
+const repeated = <T extends z.ZodType>(item: T) =>
+    z.preprocess(
+        (v) => (v === undefined ? undefined : Array.isArray(v) ? v : [v]),
+        z.array(item).max(20),
+    );
+
 const jobBase = z.object({
     title: z.string().trim().min(3).max(150),
     description: z.string().trim(),
@@ -57,7 +63,7 @@ export const jobFiltersSchema = z.object({
     q: z.string().trim().min(1).max(100).optional(),
     jobType: csv(z.enum(JobType)).optional(),
     workMode: csv(z.enum(WorkMode)).optional(),
-    location: csv(z.string().min(1).max(100)).optional(),
+    location: repeated(z.string().trim().min(1).max(100)).optional(),
     expMin: z.coerce.number().int().min(0).max(60).optional(),
     expMax: z.coerce.number().int().min(0).max(60).optional(),
     salaryMin: z.coerce.number().int().nonnegative().optional(),

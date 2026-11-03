@@ -91,7 +91,7 @@ export function parseFilters(sp: URLSearchParams): UiFilters {
         q: (sp.get("q") ?? "").trim().slice(0, 100),
         jobType: list(sp.get("jobType")).filter((v): v is JobType => JOB_TYPES.has(v)),
         workMode: list(sp.get("workMode")).filter((v): v is WorkMode => WORK_MODES.has(v)),
-        location: list(sp.get("location")).slice(0, 10),
+        location: sp.getAll("location").map((s) => s.trim()).filter(Boolean).slice(0, 10),
         exp: EXPERIENCE_BUCKETS.some((b) => b.key === exp) ? exp : null,
         salary: SALARY_BUCKETS.some((b) => b.key === salary) ? salary : null,
         postedWithin: POSTED_OPTIONS.some((o) => o.value === posted) ? posted : null,
@@ -105,7 +105,7 @@ export function toSearchParams(f: UiFilters): URLSearchParams {
     if(f.q) sp.set("q", f.q);
     if(f.jobType.length) sp.set("jobType", f.jobType.join(","));
     if (f.workMode.length) sp.set("workMode", f.workMode.join(","));
-    if (f.location.length) sp.set("location", f.location.join(","));
+    f.location.forEach((v) => sp.append("location", v));
     if(f.exp) sp.set("exp", f.exp);
     if(f.salary) sp.set("salary", f.salary);
     if(f.postedWithin) sp.set("posted", String(f.postedWithin));

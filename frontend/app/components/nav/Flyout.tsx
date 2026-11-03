@@ -3,9 +3,7 @@ import { Bookmark, Briefcase, Building2, LifeBuoy, LogOut, LucideIcon, Settings,
 import { useEffect, useRef } from "react"
 import ThemeButton from "./ThemeButton";
 import Link from "next/link";
-import { useQueryClient } from "@tanstack/react-query";
 import { useMe } from "@/lib/auth";
-import { useRouter } from "next/navigation";
 
 type FlyoutProps = {
     setIsFlyoutOpen: (value: boolean) => void;
@@ -63,8 +61,8 @@ const Flyout = ({ setIsFlyoutOpen, user }: FlyoutProps) => {
             if(ref.current && !ref.current.contains(target)) close();
         }
         const onKeyDown = (event: KeyboardEvent) => {
-            if (event.key === "Escape") close();
-            setIsFlyoutOpen(false);
+            if (event.key !== "Escape") return;
+            close();
             document.querySelector<HTMLElement>("[data-flyout-trigger]")?.focus();
         };
         document.addEventListener("mousedown", onMouseDown);
@@ -75,6 +73,16 @@ const Flyout = ({ setIsFlyoutOpen, user }: FlyoutProps) => {
             document.removeEventListener("keydown", onKeyDown);
         }
     }, [setIsFlyoutOpen])
+
+    const handleLogout = async () => {
+        try {
+            await authProvider.logout();
+        } catch {
+            // leave anyway: the session cookie may already be gone
+        }
+        // A full page load clears all cached data (me, jobs, saved jobs...) and avoids redirect races.
+        window.location.assign("/login");
+    };
 
     if (!me) return null;
 
@@ -120,7 +128,7 @@ const Flyout = ({ setIsFlyoutOpen, user }: FlyoutProps) => {
                 <button
                     type="button"
                     role="menuitem"
-                    onClick={() => authProvider.logout()}
+                    onClick={handleLogout}
                     className={`${itemClass} text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40`}
                 >
                     <LogOut size={16} className="shrink-0" />

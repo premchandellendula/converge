@@ -5,6 +5,7 @@ import { createUserRouter } from "../user/user.routes.js";
 import { createApplicantRouter } from "../applicant/applicant.routes.js";
 import { createRecruiterRouter } from "../recruiter/recruiter.routes.js";
 import { createCompanyRouter } from "../company/company.routes.js";
+import { createSkillRouter } from "../skill/skill.router.js";
 
 
 export function createV1Router(c: Container): Router {
@@ -14,5 +15,6 @@ export function createV1Router(c: Container): Router {
     router.use("/applicants", createApplicantRouter(c.applicantController));
     router.use("/recruiters", createRecruiterRouter(c.recruiterController));
     router.use("/companies", createCompanyRouter(c.companyController));
+    router.use("/skills", createSkillRouter(c.skillController));
     return router;
 }

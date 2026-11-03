@@ -8,7 +8,8 @@ import {
     JobFilterSet,
     JobFilters,
     MyApplicationItem,
-    SavedJobItem
+    SavedJobItem,
+    SkillOption
 } from "@/lib/types";
 
 /**
@@ -45,7 +46,8 @@ export const queryKeys = {
         all: ["recruiter"] as const,
         postings: (page: number, limit: number) =>
             ["recruiter", "postings", page, limit] as const
-    }
+    },
+    skills: (q: string) => ["skills", q] as const,
 };
 
 /** The `{ status, message, result, count }` envelope every backend endpoint returns. */
@@ -349,7 +351,22 @@ export const dataProvider = {
             method: "DELETE"
         });
         return json.result;
-    }
-} as const;
+    },
+
+    uploadResume: async (file: File): Promise<{ id: number }> => {
+        const form = new FormData();
+        form.append("file", file); // the backend reads the field called "file"
+        const { json } = await HttpClient<{ id: number }>("/applicants/me/resumes", {
+            method: "POST",
+            body: form,
+        });
+        return json.result as { id: number };
+    },
+
+    searchSkills: async (q: string, limit = 10): Promise<SkillOption[]> => {
+        const { json } = await HttpClient<SkillOption[]>(`/skills${toQueryString({ q, limit })}`);
+        return json.result ?? [];
+    },
+    } as const;
 
 export type DataProvider = typeof dataProvider;

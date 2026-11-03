@@ -27,6 +27,29 @@ const educationSchema = z
         path: ["score"],
     });
 
+const workExperienceSchema = z
+    .object({
+        title: z.string().trim().min(1).max(100),
+        companyName: z.string().trim().min(1).max(100),
+        location: z.string().trim().max(100).optional(),
+        startDate: z.coerce.date(),
+        endDate: z.coerce.date(),
+        isCurrent: z.boolean().default(false),
+        description: z.string().trim().max(1000).optional()
+    })  
+    .refine((x) => x.isCurrent || x.endDate !== undefined, {
+        message: "endDate is required unless this is current job",
+        path: ["endDate"],
+    })
+    .refine((x) => !x.endDate || x.endDate >= x.startDate, {
+        message: "endDate must not be before startDate",
+        path: ["endDate"]
+    })
+    .refine((x) => x.startDate <= new Date(), {
+        message: "startDate cannot be in the future",
+        path: ["startDate"]
+    })
+
 const profileBase = z.object({
     summary: z.string().trim().max(2000).optional(),
     location: z.string().trim().max(100).optional(),
@@ -44,6 +67,7 @@ const profileBase = z.object({
     preferredLocations: z.array(z.string().trim().min(1)).max(10).optional(),
     skills: z.array(z.string().trim().min(1).max(50)).max(50).optional(),
     educations: z.array(educationSchema).max(10).optional(),
+    workExperiences: z.array(workExperienceSchema).max(10).optional()
 });
 
 export const applyToJobSchema = z
@@ -68,5 +92,6 @@ export const createApplicantSchema = profileBase.strict();
 export const updateApplicantSchema = profileBase.partial().strict();
 
 export type EducationInput = z.infer<typeof educationSchema>;
+export type WorkExperienceInput = z.infer<typeof workExperienceSchema>;
 export type CreateApplicantDto = z.infer<typeof createApplicantSchema>;
 export type UpdateApplicantDto = z.infer<typeof updateApplicantSchema>;

@@ -1,12 +1,24 @@
 "use client";
 
+import { JOB_TYPE_OPTIONS, WORK_MODE_OPTIONS } from "@/lib/jobFilters";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
+export const jobTypeLabel = (v: string) => JOB_TYPE_OPTIONS.find((o) => o.value === v)?.label ?? v;
+export const workModeLabel = (v: string) => WORK_MODE_OPTIONS.find((o) => o.value === v)?.label ?? v;
 
 export type JobType = "FULL_TIME" | "PART_TIME" | "CONTRACT" | "INTERNSHIP";
 export type WorkMode = "ONSITE" | "HYBRID" | "REMOTE";
+
+export function timeAgo(iso: string): string {
+    const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+    if (days <= 0) return "Today";
+    if (days === 1) return "Yesterday";
+    if (days < 30) return `${days} days ago`;
+    const months = Math.floor(days / 30);
+    return months === 1 ? "1 month ago" : `${months} months ago`;
+}
 
 export interface JobCardData {
     id: number;
@@ -94,7 +106,7 @@ export function formatPosted(iso: string): string {
     return `Posted ${months} ${months === 1 ? "month" : "months"} ago`;
 }
 
-function CompanyLogo({ name, logoUrl }: { name: string; logoUrl: string | null }) {
+export function CompanyLogo({ name, logoUrl }: { name: string; logoUrl: string | null }) {
     const [failed, setFailed] = useState(false);
 
     if (!logoUrl || failed) {

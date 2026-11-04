@@ -3,7 +3,6 @@
 import { Role, useMe } from "@/lib/auth";
 import { friendlyMessage } from "@/lib/notify";
 import { homeFor, landingFor, onboardingFor } from "@/providers/authProvider";
-import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { ReactNode, useEffect } from "react";
 
@@ -17,14 +16,14 @@ export function AuthGuard({
     children: ReactNode
 }) {
     const router = useRouter();
-    const pathname = usePathname();
     const { data: me, isPending, error, refetch, isFetching } = useMe();
 
+    let needsLogin = false;
     let redirectTo: string | null = null;
 
     if (!isPending && !error) {
         if(!me){
-            if(allow !== "guest") redirectTo = `/login?next=${encodeURIComponent(pathname ?? "/")}`
+            if(allow !== "guest") needsLogin = true;
         }else if(allow === "guest"){
             redirectTo = landingFor(me);
         }else if (allow !== "authenticated" && me.role !== allow){
@@ -37,8 +36,13 @@ export function AuthGuard({
     }
     
     useEffect(() => {
-        if(redirectTo) router.replace(redirectTo)
-    }, [redirectTo, router])
+        if (needsLogin) {
+            const here = window.location.pathname + window.location.search;
+            router.replace(`/login?next=${encodeURIComponent(here)}`);
+        } else if (redirectTo) {
+            router.replace(redirectTo);
+        }
+    }, [needsLogin, redirectTo, router])
 
     if(isPending || redirectTo){
         return (

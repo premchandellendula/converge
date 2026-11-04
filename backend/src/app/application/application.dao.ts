@@ -8,8 +8,24 @@ export const applicationListSelect = {
     createdAt: true,
     job: {
         select: {
-        id: true, title: true, location: true, status: true,
-        company: { select: { name: true, logoUrl: true } },
+            id: true,
+            title: true,
+            location: true,
+            status: true,
+            jobType: true,
+            workMode: true,
+            experienceMin: true,
+            experienceMax: true,
+            salaryMin: true,
+            salaryMax: true,
+            currency: true,
+            company: {
+                select: {
+                    id: true,
+                    name: true,
+                    logoUrl: true,
+                },
+            },
         },
     },
 } satisfies Prisma.ApplicationSelect;

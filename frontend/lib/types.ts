@@ -82,18 +82,54 @@ export interface SavedJobItem {
     job: JobListItem & { status: JobStatus; expiresAt: string | null };
 }
 
+// export interface MyApplicationItem {
+//     id: number;
+//     status: ApplicationStatus;
+//     coverLetter: string | null;
+//     createdAt: string;
+//     job: {
+//         id: number;
+//         title: string;
+//         location: string;
+//         status: JobStatus;
+//         company: { id: number; name: string; logoUrl: string | null };
+//     };
+// }
+
+export interface ApplicationJobData {
+    id: number;
+    title: string;
+    location: string;
+    status: JobStatus;
+    experienceMin: number | null;
+    experienceMax: number | null;
+    salaryMin: number | null;
+    salaryMax: number | null;
+    currency: string;
+    jobType: JobType;
+    workMode: WorkMode;
+    company: {
+        id: number;
+        name: string;
+        logoUrl: string | null;
+    };
+}
+
+export interface ApplicationCardData {
+    id: number;
+    status: ApplicationStatus;
+    createdAt: string;
+    updatedAt?: string;
+    job: ApplicationJobData;
+}
+
 export interface MyApplicationItem {
     id: number;
     status: ApplicationStatus;
     coverLetter: string | null;
     createdAt: string;
-    job: {
-        id: number;
-        title: string;
-        location: string;
-        status: JobStatus;
-        company: { name: string; logoUrl: string | null };
-    };
+    updatedAt?: string;
+    job: ApplicationJobData;
 }
 
 export interface SkillOption { id: number; name: string }

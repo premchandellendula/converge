@@ -88,11 +88,12 @@ export function StepExperience({
 
                                     <div className="grid gap-3 sm:grid-cols-2">
                                         <div>
-                                            <label htmlFor={id("title")} className={labelClass}>Jib title</label>
-                                            <input 
+                                            <label htmlFor={id("title")} className={labelClass}>Job title</label>
+                                            <input
                                                 id={id("title")}
                                                 className={inputClass}
                                                 placeholder="Frontend Developer"
+                                                value={exp.title}
                                                 onChange={(e) => update(exp.key, { title: e.target.value })}
                                                 aria-invalid={Boolean(error("title"))}
                                                 aria-describedby={describedby("title")}

@@ -134,8 +134,10 @@ export class ApplicantService {
 
         const profile = await this.applicantDao.readIdByUserId(userId);
         if (!profile) return fail(ResultCode.NotFound, "Complete your applicant profile first");
+        console.log(profile, "profileeee")
 
         const resume = await this.resumeDao.readForApply(profile.id, resumeId);
+        console.log(resume, "profileeee res")
         if (!resume) {
             return resumeId
                 ? fail(ResultCode.NotFound, "Resume not found")

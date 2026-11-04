@@ -193,10 +193,10 @@ interface EducationBody {
 
 interface ExperienceBody {
     title: string;
-    company: string;
+    companyName: string;
     startDate: string;
     endDate?: string;
-    current: boolean;
+    isCurrent: boolean;
     description?: string;
 }
 
@@ -213,7 +213,7 @@ export interface CreateApplicationBody {
     location?: string;
     skills?: string[];
     educations?: EducationBody[];
-    experiences?: ExperienceBody[];
+    workExperiences?: ExperienceBody[];
 }
 
 export function buildBody(d: Draft): CreateApplicationBody {
@@ -232,10 +232,10 @@ export function buildBody(d: Draft): CreateApplicationBody {
 
     const experiences: ExperienceBody[] = filledExperiences(d).map((x) => ({
         title: x.title.trim(),
-        company: x.company.trim(),
+        companyName: x.company.trim(),
         startDate: `${x.startDate}-01`,
         endDate: x.current ? undefined : `${x.endDate}-01`,
-        current: x.current,
+        isCurrent: x.current,
         description: x.description.trim() || undefined
     }));
 
@@ -252,7 +252,7 @@ export function buildBody(d: Draft): CreateApplicationBody {
         location: d.location.trim() || undefined,
         skills: d.skills.length > 0 ? d.skills : undefined,
         educations: educations.length > 0 ? educations : undefined,
-        experiences: experiences.length > 0 ? experiences : undefined
+        workExperiences: experiences.length > 0 ? experiences : undefined
     }
 }
 

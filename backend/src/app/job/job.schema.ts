@@ -77,7 +77,7 @@ export const listJobsQuerySchema = jobFiltersSchema.extend({
     limit: z.coerce.number().int().min(1).max(50).default(10),
 });
 export const jobIdParamSchema = z.object({
-    id: z.coerce.number().int().positive(),
+    jobId: z.coerce.number().int().positive(),
 });
 
 export type CreateJobDto = z.infer<typeof createJobSchema>;

@@ -7,20 +7,13 @@ import {
     formatExperience,
     formatSalary,
     jobTypeLabel,
-    JobCardData,
     timeAgo,
     workModeLabel,
 } from "@/app/components/jobs/JobCard";
 import { ApplicationStatusBadge } from "../jobs/ApplicationStatusBadge";
-import { MyApplicationItem } from "@/lib/types";
+import { ApplicationCardData } from "@/lib/types";
 
-export interface ApplicationCardData {
-    id: number;
-    status: string; // APPLIED | SHORTLISTED | INTERVIEW | REJECTED | HIRED | WITHDRAWN
-    createdAt: string;
-    updatedAt?: string;
-    job: JobCardData;
-}
+export const WITHDRAWABLE = new Set(["APPLIED", "SHORTLISTED", "INTERVIEW"]);
 
 // The happy path. REJECTED and WITHDRAWN end the process, so they only show the badge.
 const PIPELINE = [
@@ -81,10 +74,12 @@ export function ApplicationCard({
     application,
     href,
     companyHref,
+    onWithdraw
 }: {
-    application: MyApplicationItem;
+    application: ApplicationCardData;
     href: string;
     companyHref?: string;
+    onWithdraw?: (application: ApplicationCardData) => void;
 }) {
     const { job, status } = application;
     const closed = job.status === "CLOSED";
@@ -148,10 +143,21 @@ export function ApplicationCard({
 
                 <Progress status={status} />
 
-                <p className="mt-3 text-xs text-stone-500 dark:text-stone-400">
-                    Applied {timeAgo(application.createdAt)}
-                    {application.updatedAt && status !== "APPLIED" && ` · Updated ${timeAgo(application.updatedAt)}`}
-                </p>
+                <div className="mt-3 flex items-center justify-between gap-3">
+                    <p className="text-xs text-stone-500 dark:text-stone-400">
+                        Applied {timeAgo(application.createdAt)}
+                        {application.updatedAt && status !== "APPLIED" && ` · Updated ${timeAgo(application.updatedAt)}`}
+                    </p>
+                    {onWithdraw && WITHDRAWABLE.has(status) && (
+                        <button
+                            type="button"
+                            onClick={() => onWithdraw(application)}
+                            className="relative z-10 rounded-md px-2 py-1 text-xs font-medium text-red-700 cursor-pointer hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-red-700 dark:text-red-400 dark:hover:bg-red-950/40"
+                        >
+                            Withdraw<span className="sr-only"> application for {job.title}</span>
+                        </button>
+                    )}
+                </div>
             </div>
         </article>
     );

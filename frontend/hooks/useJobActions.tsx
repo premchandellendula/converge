@@ -21,7 +21,11 @@ export function useAppliedJobIds(enabled: boolean) {
         queryKey: queryKeys.applications.ids,
         queryFn: async () => {
             const { items } = await dataProvider.listMyApplications<MyApplicationItem>(1, 50);
-            return new Set(items.map((a) => a.job.id));
+            return new Map(
+                items
+                    .filter((a) => a.status !== "WITHDRAWN")
+                    .map((a) => [a.job.id, { id: a.id, status: a.status }] as const),
+            );
         },
         enabled,
         staleTime: 60_000,

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { currencySchema } from "../../shared/lib.js";
-import { Currency } from "../../generated/prisma/enums.js";
+import { ApplicationStatus, Currency } from "../../generated/prisma/enums.js";
 
 const educationSchema = z
     .object({
@@ -84,6 +84,25 @@ export const jobParamSchema = z.object({
 export const applicationIdParamSchema = z.object({
     id: z.coerce.number().int().positive()
 })
+export const postingParamSchema = z.object({
+    jobId: z.coerce.number().int().positive(),
+});
+
+export const listApplicationsQuerySchema = z.object({
+    status: z.enum(ApplicationStatus).optional(),
+    q: z.string().trim().min(1).max(100).optional(),          // name or skill
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(50).default(10),
+});
+
+// A recruiter can never set WITHDRAWN (only the candidate can withdraw).
+export const updateApplicationStatusSchema = z
+    .object({
+        status: z.enum(["APPLIED", "SHORTLISTED", "INTERVIEW", "REJECTED", "HIRED"]),
+    })
+    .strict();
+
+export type ListApplicationsQuery = z.infer<typeof listApplicationsQuerySchema>;
 export const resumeIdParamSchema = z.object({ id: z.coerce.number().int().positive() });
 export const savedJobParamSchema = z.object({ id: z.coerce.number().int().positive() });
 

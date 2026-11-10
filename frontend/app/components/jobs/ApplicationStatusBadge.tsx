@@ -7,7 +7,7 @@ const STATUS: Record<string, { label: string; className: string }> = {
     WITHDRAWN: { label: "Withdrawn", className: "bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400" },
 };
 
-export function ApplicationStatusBadge({ status }: { status: string }) {
+export function ApplicationStatusBadge({ status, label }: { status: string; label?: string }) {
     const s = STATUS[status] ?? { label: status, className: STATUS.APPLIED.className };
-    return <span className={`rounded-md px-2 py-1 text-xs font-medium ${s.className}`}>{s.label}</span>;
+    return <span className={`rounded-md px-2 py-1 text-xs font-medium ${s.className}`}>{label ?? s.label}</span>;
 }

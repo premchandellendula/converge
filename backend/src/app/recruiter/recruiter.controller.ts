@@ -3,7 +3,12 @@ import { Result, ResultCode } from "../../shared/result/result.js";
 import type { RecruiterService } from "./recruiter.service.js";
 import { createRecruiterSchema, pagingSchema, updateRecruiterSchema } from "./recruiter.schema.js";
 import { jobIdParamSchema } from "../job/job.schema.js";
-import { applicationIdParamSchema, listApplicationsQuerySchema, updateApplicationStatusSchema } from "../application/application.schema.js";
+import { applicationIdParamSchema, listApplicationsQuerySchema, postingParamSchema, updateApplicationStatusSchema } from "../application/application.schema.js";
+
+const badRequest = (res: Response, issues: unknown) => {
+    const r = new Result(true, ResultCode.BadRequest, "Incorrect inputs", issues);
+    res.status(r.getStatus()).json(r);
+};
 
 export class RecruiterController {
     constructor(private readonly service: RecruiterService) {}
@@ -49,6 +54,7 @@ export class RecruiterController {
     getJobApplications = async (req: Request, res: Response) => {
         const params = jobIdParamSchema.safeParse(req.params);
         const query = listApplicationsQuerySchema.safeParse(req.query);
+        console.log(req.params, req.query, "paramssss")
         if (!params.success || !query.success) {
             const issues = [
             ...(params.success ? [] : params.error.issues),
@@ -59,7 +65,7 @@ export class RecruiterController {
             return;
         }
         const { status, page, limit } = query.data;
-        const result = await this.service.getJobApplications(req.user!.id, params.data.id, status, page, limit);
+        const result = await this.service.getJobApplications(req.user!.id, params.data.jobId, status, page, limit);
         res.status(result.getStatus()).json(result);
     };
 
@@ -76,6 +82,27 @@ export class RecruiterController {
             return;
         }
         const result = await this.service.updateApplicationStatus(req.user!.id, params.data.id, body.data.status);
+        res.status(result.getStatus()).json(result);
+    };
+
+    getApplicationCounts = async (req: Request, res: Response) => {
+        const params = postingParamSchema.safeParse(req.params);
+        if (!params.success) return badRequest(res, params.error.issues);
+        const result = await this.service.counts(req.user!.id, params.data.jobId);
+        res.status(result.getStatus()).json(result);
+    };
+
+    getApplication = async (req: Request, res: Response) => {
+        const params = applicationIdParamSchema.safeParse(req.params);
+        if (!params.success) return badRequest(res, params.error.issues);
+        const result = await this.service.detail(req.user!.id, params.data.id);
+        res.status(result.getStatus()).json(result);
+    };
+    
+    getApplicationResume = async (req: Request, res: Response) => {
+        const params = applicationIdParamSchema.safeParse(req.params);
+        if (!params.success) return badRequest(res, params.error.issues);
+        const result = await this.service.resumeUrl(req.user!.id, params.data.id);
         res.status(result.getStatus()).json(result);
     };
 }

@@ -367,6 +367,12 @@ export const dataProvider = {
         const { json } = await HttpClient<SkillOption[]>(`/skills${toQueryString({ q, limit })}`);
         return json.result ?? [];
     },
-    } as const;
+    withdrawApplication: async (applicationId: number) => {
+        const { json } = await HttpClient(`/applicants/applications/${applicationId}/withdraw`, {
+            method: "PATCH",
+        });
+        return json.result;
+    },
+} as const;
 
 export type DataProvider = typeof dataProvider;

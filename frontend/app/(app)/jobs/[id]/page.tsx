@@ -1,5 +1,8 @@
 "use client";
 
+import { WITHDRAWABLE } from "@/app/components/application/ApplicationCard";
+import { WithdrawDialog } from "@/app/components/dialog/WithdrawDialog";
+import { ApplicationStatusBadge } from "@/app/components/jobs/ApplicationStatusBadge";
 import { formatExperience, formatSalary, jobTypeLabel, timeAgo, workModeLabel } from "@/app/components/jobs/JobCard";
 import { ReportDialog, ReportPayload } from "@/app/components/jobs/ReportDialog";
 import { primaryButton, secondaryButton } from "@/app/components/ui";
@@ -37,13 +40,15 @@ export default function JobDetailPage(){
     const isCandidate = me?.role === "Candidate";
 
     const [reportOpen, setReportOpen] = useState(false);
+    const [withdrawOpen, setWithdrawOpen] = useState(false);
 
     const savedIds = useSavedJobIds(isCandidate);
     const appliedIds = useAppliedJobIds(isCandidate);
     const toggleSave = useToggleSave();
 
     const isSaved = savedIds.data?.has(jobId) ?? false;
-    const isApplied = appliedIds.data?.has(jobId) ?? false;
+    const application = appliedIds.data?.get(jobId);   // { id, status } or undefined
+    const isApplied = application !== undefined;
 
     const job = useQuery({
         queryKey: queryKeys.jobs.detail(jobId),
@@ -67,6 +72,15 @@ export default function JobDetailPage(){
             }
         }
     })
+
+    const withdraw = useMutation<unknown, HttpError, number>({
+        mutationFn: (applicationId) => dataProvider.withdrawApplication(applicationId),
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: queryKeys.applications.all });
+            toast.success("Application withdrawn");
+            setWithdrawOpen(false);
+        },
+    });
 
     const report = useMutation<unknown, HttpError, ReportPayload>({
         mutationFn: (body) => dataProvider.create(`jobs/${jobId}/report`, { data: body }),
@@ -223,9 +237,26 @@ export default function JobDetailPage(){
                 <aside aria-label="Job actions" className="h-fit space-y-3 rounded-xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900 lg:sticky lg:top-20">
                     {isCandidate ? (
                         isApplied ? (
-                            <button type="button" disabled className={`${secondaryButton} flex w-full items-center justify-center gap-2`}>
-                                <CheckCircle2 size={16} aria-hidden="true" /> Applied
-                            </button>
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between gap-2 rounded-md border border-stone-200 px-3 py-2 text-sm dark:border-stone-700">
+                                    <span className="flex items-center gap-2">
+                                        <CheckCircle2 size={16} aria-hidden="true" /> You&apos;ve applied
+                                    </span>
+                                    <ApplicationStatusBadge status={application.status} />
+                                </div>
+                                {WITHDRAWABLE.has(application.status) && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            withdraw.reset();
+                                            setWithdrawOpen(true);
+                                        }}
+                                        className="w-full rounded-md px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40"
+                                    >
+                                        Withdraw application
+                                    </button>
+                                )}
+                            </div>
                         ) : closed ? (
                             <button type="button" disabled className={`${primaryButton} w-full`}>Applications closed</button>
                         ) : (
@@ -282,6 +313,17 @@ export default function JobDetailPage(){
                     isPending={report.isPending}
                     error={report.error && report.error.status !== 409 ? report.error : null}
                     onSubmit={(payload) => report.mutate(payload)}
+                />
+            )}
+            {application && (
+                <WithdrawDialog
+                    open={withdrawOpen}
+                    onClose={() => setWithdrawOpen(false)}
+                    jobTitle={j.title}
+                    companyName={j.company.name}
+                    isPending={withdraw.isPending}
+                    error={withdraw.error}
+                    onConfirm={() => withdraw.mutate(application.id)}
                 />
             )}
         </main>

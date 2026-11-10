@@ -42,7 +42,7 @@ export function buildContainer(prisma: PrismaClient){
     const companyDao = new CompanyDao(prisma);
     const savedJobDao = new SavedJobDao(prisma);
 
-    const recruiterService = new RecruiterService(recruiterDao, jobDao, applicationDao, companyDao, storage);
+    const recruiterService = new RecruiterService(recruiterDao, jobDao, applicationDao, companyDao, storage, uploader);
     const jobService = new JobService(jobDao, recruiterService, skillDao);
     const userService = new UserService(userDao, refreshTokenDao);
     const applicantService = new ApplicantService(applicantDao, educationDao, skillDao, applicationDao, jobService, resumeDao, uploader, savedJobDao);

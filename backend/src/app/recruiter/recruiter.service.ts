@@ -2,6 +2,7 @@ import type { ApplicationStatus, CompanyRole } from "../../generated/prisma/enum
 import { makeSlug } from "../../shared/lib.js";
 import { Result, ResultCode, ResultWithCount } from "../../shared/result/result.js";
 import type { FileStorage } from "../../shared/storage/file-storage.js";
+import type { FileUploader } from "../../shared/storage/uploader.js";
 import { applicationForRecruiterSelect, type ApplicationDao, type ApplicationForRecruiter } from "../application/application.dao.js";
 import type { CompanyDao } from "../company/company.dao.js";
 import { jobPostingSelect, type JobDao, type JobListItem, type JobPostingItem } from "../job/job.dao.js";
@@ -14,7 +15,7 @@ export interface RecruiterContext {
     companyRole: CompanyRole;
 }
 
-const transitions: Record<ApplicationStatus, ApplicationStatus[]> = {
+const ALLOWED: Record<ApplicationStatus, ApplicationStatus[]> = {
     APPLIED: ["SHORTLISTED", "REJECTED"],
     SHORTLISTED: ["INTERVIEW", "HIRED", "REJECTED"],
     INTERVIEW: ["HIRED", "REJECTED"],
@@ -30,6 +31,7 @@ export class RecruiterService {
         private readonly applicationDao: ApplicationDao,
         private readonly companyDao: CompanyDao,
         private readonly storage: FileStorage,
+        private readonly uploader: FileUploader,
     ) {}
 
     async create(userId: string, dto: CreateRecruiterDto): Promise<Result<{ id: number }>> {
@@ -147,7 +149,7 @@ export class RecruiterService {
         const app = found.result;
 
         if (app.job.companyId !== ctx.companyId) return fail(ResultCode.Forbidden, "This application belongs to another company");
-        if (!transitions[app.status].includes(next)) {
+        if (!ALLOWED[app.status].includes(next)) {
             return fail(ResultCode.Conflict, `Cannot move an application from ${app.status} to ${next}`);
         }
 
@@ -173,5 +175,52 @@ export class RecruiterService {
 
         const url = await this.storage.signedUrl("resume", found.result.resumeKey, 60);
         return new Result(false, ResultCode.Success, "Resume link ready", { url });
+    }
+
+    async counts(userId: string, jobId: number): Promise<Result<Record<string, number>>> {
+        const recruiter = await this.recruiterDao.readByUserId(userId);
+        if (!recruiter) return new Result(true, ResultCode.NotFound, "Complete your recruiter profile first");
+
+        const job = await this.recruiterDao.jobOfCompany(jobId, recruiter.company.id);
+        if (!job) return new Result(true, ResultCode.NotFound, "NOT_FOUND");
+
+        return new Result(false, ResultCode.Success, "Counts fetched", await this.recruiterDao.applicationCounts(job.id));
+    }
+
+    async detail(userId: string, applicationId: number) {
+        const recruiter = await this.recruiterDao.readByUserId(userId);
+        if (!recruiter) return new Result(true, ResultCode.NotFound, "Complete your recruiter profile first");
+
+        const detail = await this.recruiterDao.applicationDetail(applicationId, recruiter.company.id);
+        if (!detail) return new Result(true, ResultCode.NotFound, "NOT_FOUND");
+        
+        return new Result(false, ResultCode.Success, "Application fetched", detail);
+    }
+
+    async updateStatus(userId: string, applicationId: number, status: "APPLIED" | "SHORTLISTED" | "INTERVIEW" | "REJECTED" | "HIRED"): Promise<Result<{ id: number }>> {
+        const recruiter = await this.recruiterDao.readByUserId(userId);
+        if (!recruiter) return new Result(true, ResultCode.NotFound, "Complete your recruiter profile first");
+
+        const application = await this.recruiterDao.findForCompany(applicationId, recruiter.company.id);
+        if (!application) return new Result(true, ResultCode.NotFound, "NOT_FOUND");
+
+        if (!ALLOWED[application.status]?.includes(status)) {
+            return new Result(true, ResultCode.Conflict, "That status change isn't allowed");
+        }
+        
+        const updated = await this.recruiterDao.setStatus(application.id, status);
+        return new Result(false, ResultCode.Success, "Status updated", updated);
+    }
+
+    async resumeUrl(userId: string, applicationId: number): Promise<Result<{ url: string }>> {
+        const recruiter = await this.recruiterDao.readByUserId(userId);
+        if (!recruiter) return new Result(true, ResultCode.NotFound, "Complete your recruiter profile first");
+
+        const application = await this.recruiterDao.findForCompany(applicationId, recruiter.company.id);
+        if (!application?.resumeUrl) return new Result(true, ResultCode.NotFound, "No resume attached");
+
+        // assumes resumeUrl holds the storage key, like "resume/<uuid>.pdf"
+        const url = await this.uploader.getSignedUrl("resume", application.resumeUrl, 300);
+        return new Result(false, ResultCode.Success, "Resume link created", { url });
     }
 }

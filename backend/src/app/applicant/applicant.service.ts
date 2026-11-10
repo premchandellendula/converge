@@ -12,6 +12,8 @@ import type { ApplyToJobDto, CreateApplicantDto, UpdateApplicantDto } from "./ap
 import type { SavedJobDao, SavedJobItem } from "../savedJob/savedJob.dao.js";
 
 const FINAL_STATUSES: ApplicationStatus[] = ["HIRED", "REJECTED", "WITHDRAWN"];
+const WITHDRAWABLE = ["APPLIED", "SHORTLISTED", "INTERVIEW"];
+const NO_PROFILE = "Complete your applicant profile first";
 
 type ApplyContext = { applicantId: number; resumeId: number; resumeUrl: string };
 const MAX_RESUMES = 5;

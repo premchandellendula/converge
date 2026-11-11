@@ -73,11 +73,12 @@ function withDefaults(p: ApplicantProfile): ApplicantProfile {
     };
 }
 
-export function useMyProfile() {
+export function useMyProfile(enabled = true) {
     return useQuery({
         queryKey: profileKey,
         queryFn: async () => (await dataProvider.getOne<ApplicantProfile>("applicants", "me")).data,
         select: withDefaults,
+        enabled
     });
 }
 

@@ -39,7 +39,7 @@ function withDefaults(p: RecruiterProfile): RecruiterProfile {
     };
 }
 
-export function useRecruiterProfile() {
+export function useRecruiterProfile(enabled = true) {
     return useQuery({
         queryKey: recruiterProfileKey,
         queryFn: async () => (await dataProvider.getOne<RecruiterProfile>("recruiters", "me")).data,

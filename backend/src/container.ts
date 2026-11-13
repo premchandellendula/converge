@@ -25,6 +25,10 @@ import { FileUploader } from "./shared/storage/uploader.js";
 import { SavedJobDao } from "./app/savedJob/savedJob.dao.js";
 import { SkillService } from "./app/skill/skill.service.js";
 import { SkillController } from "./app/skill/skill.controller.js";
+import { AccountRecoveryDao } from "./app/accountRecovery/accountRecovery.dao.js";
+import { AccountRecoveryService } from "./app/accountRecovery/accountRecovery.service.js";
+import { MailService } from "./shared/mail/mail.service.js";
+import { createMailSender } from "./shared/mail/mail.js";
 
 export function buildContainer(prisma: PrismaClient){
     const storage = new SupabaseFileStorage(env.supabaseUrl, env.supabaseKey);
@@ -41,6 +45,7 @@ export function buildContainer(prisma: PrismaClient){
     const resumeDao = new ResumeDao(prisma);
     const companyDao = new CompanyDao(prisma);
     const savedJobDao = new SavedJobDao(prisma);
+    const accountRecoveryDao = new AccountRecoveryDao(prisma);
 
     const recruiterService = new RecruiterService(recruiterDao, jobDao, applicationDao, companyDao, storage, uploader);
     const jobService = new JobService(jobDao, recruiterService, skillDao);
@@ -48,9 +53,11 @@ export function buildContainer(prisma: PrismaClient){
     const applicantService = new ApplicantService(applicantDao, educationDao, skillDao, applicationDao, jobService, resumeDao, uploader, savedJobDao);
     const companyService = new CompanyService(companyDao, recruiterService, jobDao);
     const skillService = new SkillService(skillDao);
+    const mailService = new MailService(createMailSender(), env.appUrl);
+    const accountRecoveryService = new AccountRecoveryService(accountRecoveryDao, mailService);
 
     const jobController = new JobController(jobService);
-    const userController = new UserController(userService);
+    const userController = new UserController(userService, accountRecoveryService);
     const applicantController = new ApplicantController(applicantService);
     const recruiterController = new RecruiterController(recruiterService);
     const companyController = new CompanyController(companyService);

@@ -5,6 +5,7 @@ import Providers from "./providers";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
 import Navbar from "./components/nav/Navbar";
+import { VerifyEmailBanner } from "./components/auth/VerifyEmailBanner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,7 +36,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             defaultTheme="system"
             enableSystem
           >
-            {/* <Navbar /> */}
+            <Navbar />
+            <VerifyEmailBanner />
             {children}
           </ThemeProvider>
         </Providers>

@@ -1,8 +1,9 @@
 import type { CookieOptions, Request, Response } from "express";
 import type { UserService } from "./user.service.js";
-import { createUserSchema, loginSchema } from "./user.schema.js";
+import { createUserSchema, forgotPasswordSchema, loginSchema, resetPasswordSchema, verifyEmailSchema } from "./user.schema.js";
 import { Result, ResultCode } from "../../shared/result/result.js";
 import { ACCESS_TTL_SECONDS, REFRESH_TTL_MS } from "../../shared/auth/tokens.js";
+import type { AccountRecoveryService } from "../accountRecovery/accountRecovery.service.js";
 
 
 const isProd = process.env.NODE_ENV === "production";
@@ -12,8 +13,16 @@ const base: CookieOptions = { httpOnly: true, secure: isProd, sameSite: "lax" };
 const accessCookie: CookieOptions = { ...base, path: "/", maxAge: ACCESS_TTL_SECONDS * 1000 };
 const refreshCookie: CookieOptions = { ...base, path: "/api/v1/users", maxAge: REFRESH_TTL_MS };
 
+const badRequest = (res: Response, issues: unknown) => {
+    const r = new Result(true, ResultCode.BadRequest, "Incorrect inputs", issues);
+    res.status(r.getStatus()).json(r);
+};
+
 export class UserController {
-    constructor(private readonly service: UserService) {}
+    constructor(
+        private readonly service: UserService,
+        private readonly recovery: AccountRecoveryService
+    ) {}
 
     signup = async (req: Request, res: Response) => {
         const response = createUserSchema.safeParse(req.body);
@@ -73,6 +82,34 @@ export class UserController {
 
     me = async (req: Request, res: Response) => {
         const result = await this.service.me(req.user!.id);
+        res.status(result.getStatus()).json(result);
+    };
+
+    verifyEmail = async (req: Request, res: Response) => {
+        const parsed = verifyEmailSchema.safeParse(req.body);
+        if (!parsed.success) return badRequest(res, parsed.error.issues);
+        const result = await this.recovery.verifyEmail(parsed.data.token);
+        res.status(result.getStatus()).json(result);
+    };
+    
+    // logged-in users only
+    resendVerification = async (req: Request, res: Response) => {
+        console.log(req.user, "resendddd -1")
+        const result = await this.recovery.sendVerificationEmail(req.user!.id);
+        res.status(result.getStatus()).json(result);
+    };
+    
+    forgotPassword = async (req: Request, res: Response) => {
+        const parsed = forgotPasswordSchema.safeParse(req.body);
+        if (!parsed.success) return badRequest(res, parsed.error.issues);
+        const result = await this.recovery.forgotPassword(parsed.data.email);
+        res.status(result.getStatus()).json(result);
+    };
+    
+    resetPassword = async (req: Request, res: Response) => {
+        const parsed = resetPasswordSchema.safeParse(req.body);
+        if (!parsed.success) return badRequest(res, parsed.error.issues);
+        const result = await this.recovery.resetPassword(parsed.data.token, parsed.data.password);
         res.status(result.getStatus()).json(result);
     };
 }

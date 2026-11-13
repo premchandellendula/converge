@@ -4,6 +4,9 @@ import { Result, ResultCode } from "../result/result.js";
 const MINUTE = 60 * 1000;
 const HOUR = 60 * MINUTE;
 
+// rate-limit.ts
+export const mailLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, standardHeaders: "draft-7", legacyHeaders: false });
+
 const limiter = (opts: { windowMs: number; limit: number; message: string; skipSuccessfulRequests?: boolean }) =>
     rateLimit({
         windowMs: opts.windowMs,

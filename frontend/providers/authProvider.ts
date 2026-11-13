@@ -38,6 +38,17 @@ export const authProvider = {
             throw error;
         }
     },
+
+    forgotPassword: (email: string) => request<null>("/users/forgot-password", { method: "POST", body: JSON.stringify({ email })}),
+
+    resetPassword: (body: { token: string; password: string }) =>
+        request<null>("/users/reset-password", { method: "POST", body: JSON.stringify(body) }),
+
+    verifyEmail: (token: string) =>
+        request<null>("/users/verify-email", { method: "POST", body: JSON.stringify({ token }) }),
+
+    resendVerification: () =>
+        request<null>("/users/resend-verification", { method: "POST" })
 };
 
 /** Where each role lands after logging in. */

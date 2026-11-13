@@ -37,7 +37,7 @@ export function Landing() {
 
     return (
         <>
-            <Navbar />
+            {/* <Navbar /> */}
             <main>{me.role === "Recruiter" ? <RecruiterHome me={me} /> : <CandidateHome me={me} />}</main>
             <Footer />
         </>

@@ -10,5 +10,7 @@ export const env = {
     corsOrigins: (process.env.CORS_ORIGINS ?? "")
     .split(",")
     .map((s) => s.trim())
-    .filter(Boolean)
+    .filter(Boolean),
+    appUrl: process.env.APP_URL ?? "http://localhost:3000",
 }
+

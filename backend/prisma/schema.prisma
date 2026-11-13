@@ -70,6 +70,11 @@ enum Currency {
   GBP
 }
 
+enum EmailTokenType {
+  VERIFY_EMAIL
+  RESET_PASSWORD
+}
+
 model User {
   id              String  @id @default(uuid())
   firstName       String
@@ -89,6 +94,7 @@ model User {
   applicant       ApplicantDetails?
   recruiter       RecruiterDetails?
   refreshTokens   RefreshToken[]
+  emailTokens EmailToken[]
 }
 
 model ApplicantDetails {
@@ -277,4 +283,17 @@ model RefreshToken {
   createdAt DateTime  @default(now())
 
   @@index([userId])
+}
+
+model EmailToken {
+  id        String         @id @default(uuid())
+  userId    String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      EmailTokenType
+  tokenHash String         @unique      // only a hash is stored, never the token itself
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime       @default(now())
+
+  @@index([userId, type])
 }

@@ -204,6 +204,14 @@ export function LoginForm({onSuccess, singupHref = "/signup"}: LoginFormProps){
                     id="login-password-error"
                     message={errors.password}
                 />
+                <div className="mt-2 text-right">
+                <Link
+                    href="/forgot-password"
+                    className="text-sm font-medium text-purple-700 underline-offset-2 hover:underline dark:text-purple-400"
+                >
+                    Forgot password?
+                </Link>
+            </div>
             </div>
             <button
                 type="submit"

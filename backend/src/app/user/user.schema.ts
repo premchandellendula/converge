@@ -2,6 +2,19 @@ import z from "zod";
 import { Role } from "../../generated/prisma/enums.js";
 import type { Prisma } from "../../generated/prisma/client.js";
 
+const token = z.string().trim().min(20).max(200);
+
+export const verifyEmailSchema = z.object({ token }).strict();
+
+export const forgotPasswordSchema = z
+    .object({ email: z.string().trim().toLowerCase().pipe(z.email().max(254)) })
+    .strict();
+
+// Same rule as signup: 8 to 72 characters.
+export const resetPasswordSchema = z
+    .object({ token, password: z.string().min(8).max(72) })
+    .strict();
+
 export const createUserSchema = z.object({
     firstName: z.string().trim().min(2).max(50),
     lastName: z.string().trim().min(2).max(50),
